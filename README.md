@@ -82,19 +82,24 @@ const myControlButton = {
     // The max DMX frame rate is 44 FPS, considering any other processing costs, this callback must run at maximum of 20 ms (this time is not well defined right now, maybe it would be less than this) if you want smooth movements.
     
     // This is a simple demo. Many effects can be done here. This includes sin/cos calcs, exponential calcs, etc...
-    this.token3 = frameCallback({ priority, mode: MODES.GREATER_PRIORITY }, ({ prevMS, currentMS, deltaMS )) => {
-      const deltaSecs = deltaMS / 1000;
+    // At the first run prevMS and deltaMS will be null.
+    this.token3 = frameCallback({ priority, mode: MODES.GREATER_PRIORITY }, ({ prevMS, currentMS, deltaMS, isPaused )) => {
+      // This will keep the values freezed when token gets paused.
+      // Note that wil can even set a value when paused.
+      if (!isPaused) {
+        const deltaSecs = deltaMS / 1000;
       
-      let currentVal = moviePanGroup.getCurrentValue();
+        let currentVal = moviePanGroup.getCurrentValue();
       
-      // Half of pan rotation per second
-      currentVal += deltaSecs * (65535 / 2);
+        // Half of pan rotation per second
+        currentVal += deltaSecs * (65535 / 2);
       
-      if (currentVal >= 65535) {
-        currentVal -= 65535;
+        if (currentVal >= 65535) {
+          currentVal -= 65535;
+        }
+      
+        moviePanGroup(currentVal);
       }
-      
-      moviePanGroup(currentVal);
     });
   },
   stop: () => {
@@ -108,9 +113,12 @@ const myControlButton = {
     // If this is triggered before 1 sec, the fade in will be paused and the value will be keeped the same.
     // It will pause fadeOff too, so be careful to resume it, otherwise a leak may occur.
     pauseToken(this.token2);
+    // will set the flag paused to the callback
+    pauseToken(this.token3);
   },
   resume: () => {
     resumeToken(this.token2);
+    resumeToken(this.token3);
   },
 };
 
