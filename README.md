@@ -29,7 +29,7 @@ We need to create:
 
 # Proposal
 
-```
+```js
 const universe1 = getUniverse({ number: 1 });
 const universe2 = getUniverse({ number: 2 });
 
