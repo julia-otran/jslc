@@ -104,10 +104,13 @@ const myControlButton = {
   },
   stop: () => {
     const token1 = this.token1;
+    const token3 = this.token3;
     
     // Don't forget to `Off` your tokens. 
     // Otherwise, they will cause a memory leak and also will consume CPU because they will still be processed by the engine.
-    fadeOff({ token: this.token2, timeSecs: 1 }).then(() => instantOff({ token: token1 }));
+    fadeOff({ token: this.token2, timeSecs: 1 }).then(() => {
+      return Promise.all([instantOff({ token: token1 }), instantOff({ token: token3 })]);
+    });
   },
   pause: () => {
     // If this is triggered before 1 sec, the fade in will be paused and the value will be keeped the same.
