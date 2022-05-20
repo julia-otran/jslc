@@ -82,4 +82,6 @@ const myControlButton = {
     resumeToken(this.token2);
   },
 };
+
+addControlButton('RED and Movie Pan', myControlButton);
 ```
