@@ -1,23 +1,54 @@
 # jslc
 JavaScript based Light Control Software
 
+# Proposed Technologies
+- Electron
+- ReactJS
+- Typescript
+- C lang
+
+# Programming the scenes
+There will be a node.js lib that can be included to a project so you can code, version and manage your scenes code.
+Also, typescript typings will be added so you can see the entire jslc api.
+Your project can be built and loaded into jslc via UI.
+
+You can also use the debugger (it will be active even in the production builds of this project) to debug your scenes.
+
 # Software under construction
 Liked the idea and want to contribute?
 Get in touch with me.
 
+Right now we only have the basics API definitions, in this read-me.
+
+We need to create:
+- Electron user interface
+- ArtNet (first thing only outputs) + lightining processing engine as Electron native module 
+- MIDI Inputs (just like ArtNet inputs, we stil need to define an API to receive the inputs)
+- ArtNet inputs (we stil need to define an API to receive the inputs)
+- Sound inputs (we could handle multiple inputs, imagine how cool can be code light behaviours over sound inputs)
+
 # Proposal
 
 ```
-const masterDimmerGroup = createChannelGroup();
+const universe1 = getUniverse({ number: 1 });
+const universe2 = getUniverse({ number: 2 });
 
-masterDimmerGroup.addChannel({ start: 1, offset: 0 }); // Means CH 1 (1+0)
-masterDimmerGroup.addChannel({ start: 17, offset: 0 }); // Means CH 17 (17+0)
+// Can be very useful if you have only one.
+setDefaultUniverse(universe1);
+
+const masterDimmerGroup = createChannelGroup();
+const ledParMasterDimmerOffset = 0;
+
+masterDimmerGroup.addChannel({ universe: universe1, start: 1, offset: ledParMasterDimmerOffset }); // Means CH 1 (1+0), first DMX universe
+masterDimmerGroup.addChannel({ universe: universe2, start: 17, offset: ledParMasterDimmerOffset }); // Means CH 17 (17+0), second DMX universe
 
 // ....
 
 const redChannelGroup = createChannelGroup();
-redChannelGroup.addChannel({ start: 1, offset: 1 }); // Means CH 2 (1 + 1)
-redChannelGroup.addChannel({ start: 17, offset: 1 });
+const ledParRedOffset = 1;
+
+redChannelGroup.addChannel({ start: 1, offset: ledParRedOffset }); // Means CH 2 (1 + 1)
+redChannelGroup.addChannel({ start: 17, offset: ledParRedOffset });
 
 const moviePanGroup = createChannelGroupWithFine();
 moviePanGroup.addChannel({ start: 33, offset: 0, type: CH_TYPE.MSB });
