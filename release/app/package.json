@@ -5,7 +5,7 @@
   "license": "MIT",
   "author": {
     "name": "Julia Otranto Aulicino",
-    "email": "julia.otranto@outlook.com",
+    "email": "julia.otranto@outlook.com"
   },
   "main": "./dist/main/main.js",
   "scripts": {

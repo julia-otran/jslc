@@ -1,11 +1,20 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
-export type Channels = 'ipc-example';
+export type Channels = 'dmx-data-done' | 'devices-found';
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
-    sendMessage(channel: Channels, args: unknown[]) {
-      ipcRenderer.send(channel, args);
+    requestDevices() {
+      ipcRenderer.send('load-devices');
+    },
+    writeDMX(requestId: string, devId: number, data: Uint8Array) {
+      if (data.length !== 512) {
+        console.error(
+          'Write DMX called with invalid data size. It will be ignored.'
+        );
+      } else {
+        ipcRenderer.send('dmx-data', requestId, devId, data);
+      }
     },
     on(channel: Channels, func: (...args: unknown[]) => void) {
       const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>

@@ -22,7 +22,7 @@
   "license": "MIT",
   "author": {
     "name": "Julia Otranto Aulicino",
-    "email": "julia.otranto@outlook.com",
+    "email": "julia.otranto@outlook.com"
   },
   "contributors": [
     {
@@ -110,6 +110,7 @@
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.7",
     "electron-updater": "^5.0.1",
+    "fs-jetpack": "^4.3.1",
     "react": "^18.1.0",
     "react-dom": "^18.1.0",
     "react-router-dom": "^6.3.0"

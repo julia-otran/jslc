@@ -4,7 +4,8 @@ declare global {
   interface Window {
     electron: {
       ipcRenderer: {
-        sendMessage(channel: Channels, args: unknown[]): void;
+        requestDevices(): void;
+        writeDMX(requestId: string, devId: number, data: Uint8Array): void;
         on(
           channel: string,
           func: (...args: unknown[]) => void
