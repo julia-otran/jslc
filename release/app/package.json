@@ -1,12 +1,11 @@
 {
-  "name": "electron-react-boilerplate",
+  "name": "jslc",
   "version": "4.6.0",
-  "description": "A foundation for scalable desktop apps",
+  "description": "JSLC JavaScript Light Control",
   "license": "MIT",
   "author": {
-    "name": "Electron React Boilerplate Maintainers",
-    "email": "electronreactboilerplate@gmail.com",
-    "url": "https://github.com/electron-react-boilerplate"
+    "name": "Julia Otranto Aulicino",
+    "email": "julia.otranto@outlook.com",
   },
   "main": "./dist/main/main.js",
   "scripts": {
