@@ -4,8 +4,8 @@ export type Channels = 'dmx-data-done' | 'devices-found';
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
-    requestDevices() {
-      ipcRenderer.send('load-devices');
+    requestDevices(requestId: string) {
+      ipcRenderer.send('load-devices', requestId);
     },
     writeDMX(requestId: string, devId: number, data: Uint8Array) {
       if (data.length !== 512) {

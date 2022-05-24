@@ -19,7 +19,7 @@
   "search.exclude": {
     ".git": true,
     ".eslintcache": true,
-    ".erb/dll": true,
+    "erb/dll": true,
     "release/{build,app/dist}": true,
     "node_modules": true,
     "npm-debug.log.*": true,

@@ -37,7 +37,7 @@ let openedDevices: OpenDevice[] = [];
 
 const getDevId = (path: string): number => parseInt(path.replace('dmx', ''));
 
-ipcMain.on('load-devices', async (event) => {
+ipcMain.on('load-devices', async (event, requestId: string) => {
   console.log('Loading DMX devices....');
 
   const allDevices = await readdir('/dev');
@@ -68,6 +68,7 @@ ipcMain.on('load-devices', async (event) => {
 
   event.reply(
     'devices-found',
+    requestId,
     openedDevices.map((dev) => dev.id)
   );
 });
@@ -140,7 +141,7 @@ const createWindow = async () => {
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
-        : path.join(__dirname, '../../.erb/dll/preload.js'),
+        : path.join(__dirname, '../../erb/dll/preload.js'),
     },
   });
 
