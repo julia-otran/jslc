@@ -7,8 +7,7 @@ import {
   startProcessing,
   addProcess,
   getNextPriority,
-  Process,
-  timedIncrement,
+  ProcessCallback,
   ChannelGroup,
   MixMode,
 } from '../Engine';
@@ -19,7 +18,7 @@ let universe: Universe;
 let dimmerChannelGroup = new ChannelGroup();
 let redChannelGroup = new ChannelGroup();
 
-function* testProcess(): Process {
+const testProcess: ProcessCallback = function* ({ status }) {
   const fadeInGenerator = timedIncrement({
     startValue() {
       return 0;
@@ -46,13 +45,13 @@ function* testProcess(): Process {
       })
     );
   }
-}
+};
 
 const prepareUI = () => {
   dimmerChannelGroup.addChannel({ universe, start: 1, offset: 0 });
   redChannelGroup.addChannel({ universe, start: 1, offset: 1 });
 
-  addProcess(getNextPriority(), testProcess());
+  addProcess(getNextPriority(), testProcess);
 
   startProcessing();
 };

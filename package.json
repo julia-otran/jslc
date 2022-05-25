@@ -171,6 +171,8 @@
     "ramda": "^0.28.0",
     "react-refresh": "^0.13.0",
     "react-test-renderer": "^18.1.0",
+    "redux": "^4.2.0",
+    "redux-saga": "^1.1.3",
     "rimraf": "^3.0.2",
     "sass": "^1.51.0",
     "sass-loader": "^12.6.0",

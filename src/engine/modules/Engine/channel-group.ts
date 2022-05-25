@@ -1,33 +1,32 @@
 import { v4 as uuidV4 } from 'uuid';
-import { flatten } from 'ramda';
 
 import { validateDMXChannel } from './devices';
 import { UniverseOrDefault, getDefaultUniverse } from './universes';
 import {
-  GroupOutput,
-  ChannelMapWithDefault,
-  GroupChannelValue,
+  GroupOutputDefault,
   ChannelMap,
+  ChannelMixMapWithDefault,
+  ChannelValueMix,
 } from './channel-group-types';
 
 export const getOutput = (
   universe: UniverseOrDefault,
   channel: number
-): GroupOutput => {
+): GroupOutputDefault => {
   validateDMXChannel(channel);
   return { universe, channelMSB: channel };
 };
 
 export class ChannelGroup {
   id: string;
-  outputs: GroupOutput[];
+  outputs: GroupOutputDefault[];
 
   constructor() {
     this.id = uuidV4();
     this.outputs = [];
   }
 
-  getOutputs(): GroupOutput[] {
+  getOutputs(): GroupOutputDefault[] {
     return this.outputs;
   }
 
@@ -35,23 +34,16 @@ export class ChannelGroup {
     universe,
     start,
     offset,
-    offsetLSB,
   }: {
     universe: UniverseOrDefault;
     start: number;
     offset?: number | undefined;
-    offsetLSB?: number | undefined;
   }): void {
     const channelMSB = offset ? start + offset : start;
-    const channelLSB = offsetLSB ? start + offsetLSB : undefined;
 
     validateDMXChannel(channelMSB);
 
-    if (channelLSB) {
-      validateDMXChannel(channelLSB);
-    }
-
-    this.outputs.push({ universe, channelMSB, channelLSB });
+    this.outputs.push({ universe, channelMSB });
   }
 
   removeChannel({
@@ -78,33 +70,17 @@ export class ChannelGroup {
           const matchUniverse =
             chAndValue.output.universe.id ===
             (output.universe || getDefaultUniverse())?.id;
-          const matchMSB = chAndValue.output.channel === output.channelMSB;
-          const matchLSB = chAndValue.output.channel === output.channelLSB;
-          return matchUniverse && (matchMSB || matchLSB);
+          const matchMSB = chAndValue.output.channelMSB === output.channelMSB;
+          return matchUniverse && matchMSB;
         })
     );
   }
 
-  getChannelMapWithValue(groupValue: GroupChannelValue): ChannelMapWithDefault {
-    return flatten(
-      this.outputs.map((output) => {
-        const { universe, channelMSB, channelLSB } = output;
-        const { valueLSB, ...value } = groupValue;
-
-        const result: ChannelMapWithDefault = [];
-
-        result.push({ ...value, output: { universe, channel: channelMSB } });
-
-        if (channelLSB && valueLSB) {
-          result.push({
-            ...value,
-            output: { universe, channel: channelLSB },
-            value: valueLSB,
-          });
-        }
-
-        return result;
-      })
-    );
+  getChannelsMixWithValue(
+    groupValue: ChannelValueMix
+  ): ChannelMixMapWithDefault {
+    return this.outputs.map((output) => {
+      return { ...groupValue, output };
+    });
   }
 }

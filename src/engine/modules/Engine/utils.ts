@@ -1,38 +1,26 @@
+import { ChannelValue } from './channel-group-types';
+
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-export interface TimedIncrementParams {
-  startValue(): number;
-  endValue: number;
-  durationMs: number;
-  initialTime?: number;
-}
+export const channelValueToValue = (
+  channelValue: ChannelValue | undefined
+): number => {
+  if (!channelValue) {
+    return 0;
+  }
 
-export const timedIncrement = function* ({
-  startValue,
-  endValue,
-  durationMs,
-  initialTime,
-}: TimedIncrementParams): Generator<number, number, void> {
-  const initTime = initialTime || new Date().getTime();
+  const valueLSB =
+    channelValue.valueLSB === undefined
+      ? channelValue.valueMSB
+      : channelValue.valueLSB;
 
-  yield startValue();
+  return (channelValue.valueMSB << 8) | (valueLSB & 0xff);
+};
 
-  let elapsedTime: number = 0;
+export const valueToChannelValue = (value: number): ChannelValue => {
+  const valueLSB = value & 0xff;
+  const valueMSB = value >> 8;
 
-  do {
-    const deltaVal = endValue - startValue();
-    const step = deltaVal / durationMs;
-
-    let currentTime = new Date().getTime();
-    elapsedTime = currentTime - initTime;
-
-    if (elapsedTime >= durationMs) {
-      break;
-    }
-
-    yield step * elapsedTime;
-  } while (elapsedTime < durationMs);
-
-  return endValue;
+  return { valueMSB, valueLSB };
 };

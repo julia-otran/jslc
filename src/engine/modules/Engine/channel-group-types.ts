@@ -1,20 +1,14 @@
 import { UniverseOrDefault, Universe } from './universes';
 import { DMXChannel, DMXValue } from './devices';
 
-export interface GroupOutput {
+export interface GroupOutputDefault {
   universe: UniverseOrDefault;
   channelMSB: DMXChannel;
-  channelLSB?: DMXChannel | undefined;
 }
 
-export interface OutputDefault {
-  universe: UniverseOrDefault;
-  channel: DMXChannel;
-}
-
-export interface Output {
+export interface GroupOutput {
   universe: Universe;
-  channel: DMXChannel;
+  channelMSB: DMXChannel;
 }
 
 export enum MixMode {
@@ -25,23 +19,38 @@ export enum MixMode {
 }
 
 export interface ChannelValue {
-  value: DMXValue;
+  valueMSB: DMXValue;
+  valueLSB: DMXValue;
+}
+
+export interface ChannelValueMixed extends ChannelValue {
   weight?: number | undefined;
+}
+
+export interface ChannelValueMix extends ChannelValueMixed {
   mixMode: MixMode;
 }
 
-export interface GroupChannelValue extends ChannelValue {
-  valueLSB?: number | undefined;
+export interface ChannelMixWithDefault extends ChannelValueMix {
+  output: GroupOutputDefault;
 }
 
-interface OutputDefaultValue extends ChannelValue {
-  output: OutputDefault;
+export interface ChannelOutput {
+  output: GroupOutput;
 }
 
-interface OutputValue extends ChannelValue {
-  output: Output;
+export interface ChannelMix extends ChannelValueMix, ChannelOutput {}
+
+export interface ChannelMixed extends ChannelValueMixed, ChannelOutput {}
+
+export type ChannelMixMapWithDefault = ChannelMixWithDefault[];
+
+export type ChannelMixMap = ChannelMix[];
+
+export type ChannelMixedMap = ChannelMixed[];
+
+export interface Channel extends ChannelValue {
+  output: GroupOutput;
 }
 
-export type ChannelMapWithDefault = OutputDefaultValue[];
-
-export type ChannelMap = OutputValue[];
+export type ChannelMap = Channel[];

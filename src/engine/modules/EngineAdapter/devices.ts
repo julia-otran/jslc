@@ -101,14 +101,28 @@ const writeToDevice = (
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
     const requestId = uuidV4();
+    let callbackRun = false;
+    let timeoutId: NodeJS.Timeout | undefined = undefined;
 
     const writeCallback: WriteCallback = (success) => {
-      if (success) {
-        resolve();
-      } else {
-        reject();
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = undefined;
+      }
+
+      if (!callbackRun) {
+        callbackRun = true;
+
+        if (success) {
+          resolve();
+        } else {
+          reject();
+        }
       }
     };
+
+    // Ensure callback will be run, if some write gets stuck
+    timeoutId = setTimeout(() => writeCallback(false), 100);
 
     writeCallbacks[requestId] = writeCallback;
 

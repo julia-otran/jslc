@@ -1,7 +1,7 @@
 import { groupBy, pipe, sort, flatten, reduce } from 'ramda';
 import { v4 as uuidV4 } from 'uuid';
 
-import { DMXData, dmxChannels } from './devices';
+import { DMXData, DMXValue, dmxChannels } from './devices';
 import {
   addUniverseCreatedCallback,
   Universe,
@@ -11,30 +11,30 @@ import {
 } from './universes';
 import {
   ChannelMap,
-  ChannelMapWithDefault,
+  ChannelMixMapWithDefault,
   MixMode,
   ChannelValue,
+  ChannelMix,
+  ChannelMixWithDefault,
+  ChannelValueMixed,
+  ChannelValueMix,
+  ChannelMixMap,
+  ChannelMixedMap,
+  ChannelOutput,
 } from './channel-group-types';
-import { sleep } from './utils';
-
-type Token = string;
+import { Token, Process, ProcessStatus, ProcessCallback } from './core-types';
+import { sleep, channelValueToValue, valueToChannelValue } from './utils';
+import { getChannelMSB, getChannelLSB } from './channel-lsb';
 
 interface InternalPriority {
   major: number;
   minor: number;
 }
 
-export interface FrameControls {
-  getValues(): ChannelMap;
-  setValues(values: ChannelMapWithDefault): void;
-  pushValues(values: ChannelMapWithDefault): void;
-}
-
-export type Process = Generator<void, void, FrameControls>;
-
 interface OutputFunction {
   token: Token;
   process: Process;
+  status: ProcessStatus;
   priority: InternalPriority;
 }
 
@@ -54,17 +54,46 @@ const getNextMinorPriority = (major: number): number => {
   return isFinite(prio) ? prio + 1 : 0;
 };
 
-export const addProcess = (priority: number, process: Process): Token => {
+export const addProcess = (
+  priority: number,
+  processCb: ProcessCallback
+): Token => {
   const minorPriority = getNextMinorPriority(priority);
   const token = uuidV4();
+  const status = { stopped: false, paused: false };
 
   outputFunctions.push({
+    status,
     priority: { major: priority, minor: minorPriority },
-    process,
+    process: processCb({ status, token }),
     token,
   });
 
   return token;
+};
+
+export const pauseProcess = (token: Token): void => {
+  const fn = outputFunctions.find((fn) => fn.token === token);
+
+  if (fn) {
+    fn.status.paused = true;
+  }
+};
+
+export const resumeProcess = (token: Token): void => {
+  const fn = outputFunctions.find((fn) => fn.token === token);
+
+  if (fn) {
+    fn.status.paused = false;
+  }
+};
+
+export const stopProcess = (token: Token): void => {
+  const fn = outputFunctions.find((fn) => fn.token === token);
+
+  if (fn) {
+    fn.status.stopped = true;
+  }
 };
 
 let processingUniverses: Universe[] = [];
@@ -92,82 +121,155 @@ const groupAndSortByPriorityMajor = pipe(
   )
 );
 
-const processMixModes = (values: ChannelValue[]): ChannelValue | undefined => {
-  const current = values[0];
+const valueWeightCalc = (
+  current: number,
+  previous: number,
+  currentWeight: number | undefined
+): number => {
+  const weight = currentWeight === undefined ? 1 : currentWeight;
+  return current * weight + previous * (1 - weight);
+};
 
+const channelValueOp = (
+  current: ChannelValueMixed,
+  previous: ChannelValueMixed | undefined,
+  op: (a: number, b: number) => number
+): ChannelValue => {
+  const currentVal = channelValueToValue(current);
+  const previousVal = channelValueToValue(previous);
+  const currentWeight = current.weight;
+
+  return valueToChannelValue(
+    valueWeightCalc(op(currentVal, previousVal), previousVal, currentWeight)
+  );
+};
+
+const mixChannelValues = <
+  TMixed extends ChannelValueMixed,
+  TCurrent extends TMixed & ChannelValueMix
+>(
+  previous: TMixed | undefined,
+  current: TCurrent | undefined
+): TMixed | undefined => {
   if (!current) {
-    return undefined;
+    return previous;
   }
 
-  const next = values.slice(1);
-
-  if (next.length <= 0) {
-    return current;
-  }
+  const currentValue = channelValueToValue(current);
+  const currentWeight = current.weight === undefined ? 1 : current.weight;
 
   if (current.mixMode === MixMode.GREATER_PRIORITY) {
-    if (!current.weight || current.weight >= 1) {
-      return current;
-    }
+    const value = valueWeightCalc(
+      currentValue,
+      channelValueToValue(previous),
+      currentWeight
+    );
 
-    const nextp = processMixModes(next);
-
-    const currentVal = current.weight * current.value;
-    const nextVal = (1 - current.weight) * (nextp?.value || 0);
-
-    const value = currentVal + nextVal;
-
-    return { ...current, weight: undefined, value };
+    return { ...current, ...valueToChannelValue(value), weight: undefined };
   }
 
   if (current.mixMode === MixMode.MAX) {
     return {
       ...current,
-      value: Math.max(current.value, processMixModes(next)?.value || 0),
+      ...channelValueOp(current, previous, Math.max),
+      weight: undefined,
     };
   }
 
   if (current.mixMode === MixMode.MIN) {
     return {
       ...current,
-      value: Math.min(current.value, processMixModes(next)?.value || 0),
+      ...channelValueOp(current, previous, Math.min),
+      weight: undefined,
     };
   }
 
   if (current.mixMode === MixMode.AVERAGE) {
-    const nextResult = processMixModes(next);
-    const currentWeight = current.weight || 1;
+    const prevWeight = previous?.weight === undefined ? 1 : previous.weight;
 
-    const nextWeight = nextResult?.weight || 1;
-    const nextVal = (nextResult?.value || 0) * nextWeight;
-    const weight = nextWeight + currentWeight;
+    const prevVal = channelValueToValue(previous) * prevWeight;
+    const weight = prevWeight + currentWeight;
 
-    const value = (nextVal + currentWeight * current.value) / weight;
+    const value = (prevVal + currentWeight * currentValue) / weight;
 
-    return { ...current, weight, value };
+    return { ...current, ...valueToChannelValue(value), weight };
   }
 
   throw new Error('Invalid MixMode.');
 };
 
-const reduceFunctions = (acc: ChannelMap, fn: OutputFunction): ChannelMap => {
+const fillUniverse = (
+  withDefault: ChannelMixWithDefault
+): ChannelMix | undefined => {
+  const universe = withDefault.output.universe || getDefaultUniverse();
+
+  if (!universe) {
+    return undefined;
+  }
+
+  const { channelMSB } = withDefault.output;
+
+  return {
+    ...withDefault,
+    output: { universe, channelMSB },
+  };
+};
+
+const groupByOutput = <T extends ChannelOutput>(entities: T[]): T[][] =>
+  Object.values(
+    groupBy<T>(
+      ({ output }) => `${output.universe.id}-${output.channelMSB}`,
+      entities
+    )
+  );
+
+const fixChInput = (
+  mixMapWithDefault: ChannelMixMapWithDefault
+): ChannelMixMap => {
+  const mixMap = mixMapWithDefault
+    .map(fillUniverse)
+    .filter(Boolean) as ChannelMixMap;
+  const msbInputs = mixMap.filter(
+    (chMix) =>
+      getChannelMSB({
+        universe: chMix.output.universe,
+        channelLSB: chMix.output.channelMSB,
+      }) === undefined
+  );
+
+  if (msbInputs.length !== mixMap.length) {
+    console.error(
+      'An LSB Channel was outputed as MSB Channel. The engine will ignore this value. Please, set the valueLSB and valueMSB in a MSB channel.'
+    );
+  }
+
+  return msbInputs;
+};
+
+const reduceFunctions = (
+  acc: ChannelMixedMap,
+  fn: OutputFunction
+): ChannelMixedMap => {
   // First, send current values
   // maybe the process don't care
-  let newValues: ChannelMapWithDefault = [];
+  let newValues: ChannelMixMap = [];
 
-  const getValues = (): ChannelMap => acc;
-  const setValues = (values: ChannelMapWithDefault): void => {
-    newValues = values;
+  const getStackMixedChannels = (): ChannelMixedMap => acc;
+  const getValues = (): ChannelMixMap => newValues;
+  const setValues = (values: ChannelMixMapWithDefault): void => {
+    newValues = fixChInput(values);
   };
 
-  const pushValues = (values: ChannelMapWithDefault): void => {
-    newValues.push(...values);
+  const pushValues = (values: ChannelMixMapWithDefault): void => {
+    newValues.push(...fixChInput(values));
   };
 
   let processOutput = fn.process.next({
+    getStackMixedChannels,
     getValues,
     setValues,
     pushValues,
+    status: fn.status,
   });
 
   if (processOutput.done) {
@@ -178,41 +280,23 @@ const reduceFunctions = (acc: ChannelMap, fn: OutputFunction): ChannelMap => {
     return acc;
   }
 
-  const unmixedValues = [...acc];
+  return groupByOutput(newValues.filter(Boolean) as ChannelMixMap)
+    .map((mixMap) => {
+      const initialMixed = acc
+        .filter(
+          ({ output }) => (output.universe.id = mixMap[0].output.universe.id)
+        )
+        .find(
+          ({ output }) => output.channelMSB === mixMap[0].output.channelMSB
+        );
 
-  newValues.forEach((out) => {
-    const universe = out.output.universe || getDefaultUniverse();
-
-    if (!universe) {
-      return;
-    }
-
-    const { channel } = out.output;
-
-    unmixedValues.push({
-      ...out,
-      output: { universe, channel },
-    });
-  });
-
-  const result: ChannelMap = [];
-
-  processingUniverses.forEach((universe) => {
-    dmxChannels().forEach((channel) => {
-      const chValuesUnmixed = unmixedValues
-        .filter((v) => v.output.universe.id === universe.id)
-        .filter((v) => v.output.channel === channel);
-
-      const chValue = processMixModes(chValuesUnmixed);
-
-      if (chValue) {
-        result.push({ ...chValue, output: { universe, channel } });
-      }
-    });
-  });
-
-  return result;
+      return reduce(mixChannelValues, initialMixed, mixMap);
+    })
+    .filter(Boolean) as ChannelMixedMap;
 };
+
+const sanitizeValue = (data: number | undefined): DMXValue =>
+  Math.max(0, Math.min(255, Math.round(data || 0)));
 
 const processUniverses = (): Promise<void> => {
   const fns = flatten(
@@ -231,11 +315,18 @@ const processUniverses = (): Promise<void> => {
     dmxChannels().forEach((chNumber) => {
       const val = channelMap
         .filter((m) => m.output.universe?.id === universe.id)
-        .find((m) => m.output.channel === chNumber);
+        .find((m) => m.output.channelMSB === chNumber);
+
+      const lsbCh = getChannelLSB({ universe, channelMSB: chNumber });
 
       const i = chNumber - 1;
+      const ilsb = lsbCh ? lsbCh - 1 : undefined;
 
-      dataNumber[i] = Math.max(0, Math.min(255, Math.round(val?.value || 0)));
+      dataNumber[i] = sanitizeValue(val?.valueMSB);
+
+      if (ilsb) {
+        dataNumber[ilsb] = sanitizeValue(val?.valueLSB);
+      }
     });
 
     const data: DMXData = new Uint8Array(dataNumber);

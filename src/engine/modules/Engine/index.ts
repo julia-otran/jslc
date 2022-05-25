@@ -12,7 +12,8 @@ export {
 } from './devices';
 
 export * from './universes';
-export * from './core';
-export * from './utils';
 export * from './channel-group-types';
 export * from './channel-group';
+export * from './core-types';
+export * from './core';
+export * from './utils';
