@@ -20,7 +20,7 @@ export enum MixMode {
 
 export interface ChannelValue {
   valueMSB: DMXValue;
-  valueLSB: DMXValue;
+  valueLSB?: DMXValue | undefined;
 }
 
 export interface ChannelValueMixed extends ChannelValue {

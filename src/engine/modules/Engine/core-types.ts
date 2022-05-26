@@ -11,9 +11,13 @@ export interface ProcessStatus {
   stopped: boolean;
 }
 
-export interface FrameControls {
-  token: Token;
+export interface ProcessCallbackParams {
   status: ProcessStatus;
+  token: Token;
+}
+
+export interface FrameControls {
+  params: ProcessCallbackParams;
   getStackMixedChannels(): ChannelMixedMap;
   getValues(): ChannelMixMap;
   setValues(values: ChannelMixMapWithDefault): void;
@@ -21,10 +25,5 @@ export interface FrameControls {
 }
 
 export type Process = Generator<void, void, FrameControls>;
-
-export interface ProcessCallbackParams {
-  status: ProcessStatus;
-  token: Token;
-}
 
 export type ProcessCallback = ({}: ProcessCallbackParams) => Process;

@@ -61,11 +61,14 @@ export const addProcess = (
   const minorPriority = getNextMinorPriority(priority);
   const token = uuidV4();
   const status = { stopped: false, paused: false };
+  const process = processCb({ status, token });
+
+  process.next();
 
   outputFunctions.push({
     status,
     priority: { major: priority, minor: minorPriority },
-    process: processCb({ status, token }),
+    process,
     token,
   });
 
@@ -269,7 +272,7 @@ const reduceFunctions = (
     getValues,
     setValues,
     pushValues,
-    status: fn.status,
+    params: { status: fn.status, token: fn.token },
   });
 
   if (processOutput.done) {
@@ -280,7 +283,9 @@ const reduceFunctions = (
     return acc;
   }
 
-  return groupByOutput(newValues.filter(Boolean) as ChannelMixMap)
+  const mixedChannels = groupByOutput(
+    newValues.filter(Boolean) as ChannelMixMap
+  )
     .map((mixMap) => {
       const initialMixed = acc
         .filter(
@@ -293,6 +298,16 @@ const reduceFunctions = (
       return reduce(mixChannelValues, initialMixed, mixMap);
     })
     .filter(Boolean) as ChannelMixedMap;
+
+  const previousRemainingChannels = acc.filter(
+    (remaining) =>
+      mixedChannels
+        .filter((m) => m.output.universe.id === remaining.output.universe.id)
+        .find((m) => m.output.channelMSB === remaining.output.channelMSB) ===
+      undefined
+  );
+
+  return [...previousRemainingChannels, ...mixedChannels];
 };
 
 const sanitizeValue = (data: number | undefined): DMXValue =>
@@ -314,7 +329,7 @@ const processUniverses = (): Promise<void> => {
 
     dmxChannels().forEach((chNumber) => {
       const val = channelMap
-        .filter((m) => m.output.universe?.id === universe.id)
+        .filter((m) => m.output.universe.id === universe.id)
         .find((m) => m.output.channelMSB === chNumber);
 
       const lsbCh = getChannelLSB({ universe, channelMSB: chNumber });

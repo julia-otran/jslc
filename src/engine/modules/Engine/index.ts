@@ -17,3 +17,4 @@ export * from './channel-group';
 export * from './core-types';
 export * from './core';
 export * from './utils';
+export * from './functions';

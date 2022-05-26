@@ -7,9 +7,10 @@ import {
   startProcessing,
   addProcess,
   getNextPriority,
-  ProcessCallback,
   ChannelGroup,
-  MixMode,
+  fadeInWithOutByWeight,
+  stopProcess,
+  keepValue,
 } from '../Engine';
 
 import { reloadDevices } from '../EngineAdapter';
@@ -18,40 +19,24 @@ let universe: Universe;
 let dimmerChannelGroup = new ChannelGroup();
 let redChannelGroup = new ChannelGroup();
 
-const testProcess: ProcessCallback = function* ({ status }) {
-  const fadeInGenerator = timedIncrement({
-    startValue() {
-      return 0;
-    },
-    endValue: 255,
-    durationMs: 2000,
-  });
-
-  while (true) {
-    const frameControls = yield;
-
-    const fadeInValue = fadeInGenerator.next().value || 255;
-
-    frameControls.pushValues(
-      dimmerChannelGroup.getChannelMapWithValue({
-        value: 255,
-        mixMode: MixMode.GREATER_PRIORITY,
-      })
-    );
-    frameControls.pushValues(
-      redChannelGroup.getChannelMapWithValue({
-        value: fadeInValue,
-        mixMode: MixMode.GREATER_PRIORITY,
-      })
-    );
-  }
-};
-
 const prepareUI = () => {
   dimmerChannelGroup.addChannel({ universe, start: 1, offset: 0 });
   redChannelGroup.addChannel({ universe, start: 1, offset: 1 });
 
-  addProcess(getNextPriority(), testProcess);
+  addProcess(getNextPriority(), () =>
+    keepValue({ channelGroup: redChannelGroup, targetValue: { valueMSB: 255 } })
+  );
+
+  const token = addProcess(
+    getNextPriority(),
+    fadeInWithOutByWeight({
+      channelGroup: dimmerChannelGroup,
+      durationMs: 2000,
+      targetValue: { valueMSB: 255 },
+    })
+  );
+
+  setTimeout(() => stopProcess(token), 3000);
 
   startProcessing();
 };
