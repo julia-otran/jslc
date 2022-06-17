@@ -320,6 +320,7 @@ const reduceFunctions = (
     stopProcess,
     cancelProcess,
     pauseProcess,
+    resumeProcess,
     getStackMixedChannels,
     getValues,
     setValues,

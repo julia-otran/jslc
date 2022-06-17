@@ -1,5 +1,5 @@
 import { v4 as uuidV4 } from 'uuid';
-import { all, any } from 'ramda';
+import { all as allR, any } from 'ramda';
 
 import { ChannelMixMap } from './channel-group-types';
 import { Process, Task } from './core-types';
@@ -11,12 +11,16 @@ export enum EffectType {
   FREEZE = 'FREEZE',
   STOP = 'STOP',
   PAUSE = 'PAUSE',
+  RESUME = 'RESUME',
   TAKE = 'TAKE',
   TAKE_MAYBE = 'TAKE_MAYBE',
   PUT = 'PUT',
   JOIN = 'JOIN',
   RACE = 'RACE',
   ALL = 'ALL',
+  IS_PAUSED = 'IS_PAUSED',
+  IS_STOPPED = 'IS_STOPPED',
+  IS_CANCELLED = 'IS_CANCELLED',
 }
 
 type GeneratorReturnType<T extends Generator> = T extends Generator<
@@ -40,9 +44,13 @@ export type WaitNextFrameGenerator = Generator<
   WaitNextFrameEffectReturn
 >;
 
-export const isWaitNextFrameEffect = (
-  value: any
-): value is WaitNextFrameEffect => value?.type === EffectType.WAIT_NEXT_FRAME;
+const isWaitNextFrameEffect = (value: any): value is WaitNextFrameEffect =>
+  value?.type === EffectType.WAIT_NEXT_FRAME;
+
+export const waitNextFrame = (): WaitNextFrameEffect => ({
+  type: EffectType.WAIT_NEXT_FRAME,
+  effectData: undefined,
+});
 
 export interface ForkEffectData<TSaga extends TInternalSaga> {
   forkGenerator: TSaga;
@@ -51,6 +59,13 @@ export type ForkEffect<TSaga extends TInternalSaga> = BaseEffect<
   EffectType.FORK,
   ForkEffectData<TSaga>
 >;
+
+export const fork = <TSaga extends TInternalSaga>(
+  saga: TSaga
+): ForkEffect<TSaga> => ({
+  type: EffectType.FORK,
+  effectData: { forkGenerator: saga },
+});
 
 const isForkEffect = <TSaga extends TInternalSaga>(
   value: any
@@ -68,11 +83,21 @@ export type CancelEffect = BaseEffect<EffectType.CANCEL, CancelEffectData>;
 export type CancelEffectReturn = void;
 export type CancelGenerator = Generator<CancelEffect, void, void>;
 
-export const isCancelEffect = (value: any): value is CancelEffect =>
+const isCancelEffect = (value: any): value is CancelEffect =>
   value?.type === EffectType.CANCEL;
+
+export const cancel = (): CancelEffect => ({
+  type: EffectType.CANCEL,
+  effectData: undefined,
+});
 
 export type FreezeEffect = BaseEffect<EffectType.FREEZE, void>;
 export type FreezeGenerator = Generator<FreezeEffect, void, void>;
+
+export const freeze = (): FreezeEffect => ({
+  type: EffectType.FREEZE,
+  effectData: undefined,
+});
 
 const isFreezeEffect = (value: any): value is FreezeEffect =>
   value?.type === EffectType.FREEZE;
@@ -84,12 +109,34 @@ export type StopGenerator = Generator<StopEffect, void, void>;
 const isStopEffect = (value: any): value is StopEffect =>
   value?.type === EffectType.STOP;
 
+export const stop = (task?: Task | undefined): StopEffect => ({
+  type: EffectType.STOP,
+  effectData: task,
+});
+
 export type PauseEffectData = Task | undefined;
 export type PauseEffect = BaseEffect<EffectType.PAUSE, PauseEffectData>;
 export type PauseGenerator = Generator<PauseEffect, void, void>;
 
+export const pause = (task?: Task): PauseEffect => ({
+  type: EffectType.PAUSE,
+  effectData: task,
+});
+
 const isPauseEffect = (value: any): value is PauseEffect =>
   value?.type === EffectType.PAUSE;
+
+export type ResumeEffectData = Task | undefined;
+export type ResumeEffect = BaseEffect<EffectType.RESUME, ResumeEffectData>;
+export type ResumeGenerator = Generator<ResumeEffect, void, void>;
+
+export const resume = (task?: Task): ResumeEffect => ({
+  type: EffectType.RESUME,
+  effectData: task,
+});
+
+const isResumeEffect = (value: any): value is ResumeEffect =>
+  value?.type === EffectType.RESUME;
 
 enum InternalEffectChannelToken {}
 
@@ -114,6 +161,13 @@ const isTakeEffect = <TChannelToken extends string>(
   value: any
 ): value is TakeEffect<TChannelToken> => value?.type === EffectType.TAKE;
 
+export const take = <TChannelToken extends string>(
+  channelToken: TChannelToken
+): TakeEffect<TChannelToken> => ({
+  type: EffectType.TAKE,
+  effectData: { channelToken },
+});
+
 export interface TakeMaybeEffectData<TChannelToken extends string> {
   channelToken: EffectChannelToken<TChannelToken>;
 }
@@ -126,6 +180,13 @@ export type TakeMaybeGenerator<
   TChannelToken extends string,
   TChannelReturn
 > = Generator<TakeMaybeEffect<TChannelToken>, void, TChannelReturn | undefined>;
+
+export const takeMaybe = <TChannelToken extends string>(
+  channelToken: TChannelToken
+): TakeMaybeEffect<TChannelToken> => ({
+  type: EffectType.TAKE_MAYBE,
+  effectData: { channelToken },
+});
 
 const isTakeMaybeEffect = <TChannelToken extends string>(
   value: any
@@ -149,6 +210,17 @@ export type PutGenerator<
   TChannelData extends { [key in EffectChannelToken<TChannelToken>]: any }
 > = Generator<PutEffect<TChannelToken, TChannelData>, void, void>;
 
+export const put = <
+  TChannelToken extends string,
+  TChannelData extends { [key in EffectChannelToken<TChannelToken>]: any }
+>(
+  channelToken: TChannelToken,
+  data: TChannelData[TChannelToken]
+): PutEffect<TChannelToken, TChannelData> => ({
+  type: EffectType.PUT,
+  effectData: { channelToken, data },
+});
+
 const isPutEffect = <
   TChannelToken extends string,
   TChannelData extends { [key in EffectChannelToken<TChannelToken>]: any }
@@ -168,6 +240,14 @@ export interface JoinEffectData {
 }
 export type JoinEffect = BaseEffect<EffectType.JOIN, JoinEffectData>;
 export type JoinGenerator = Generator<JoinEffect, void, void>;
+
+export const join = (
+  tasks: Task[],
+  joinMode: JoinMode = JoinMode.DONE
+): JoinEffect => ({
+  type: EffectType.JOIN,
+  effectData: { tasks, joinMode },
+});
 
 const isJoinEffect = (value: any): value is JoinEffect =>
   value?.type === EffectType.JOIN;
@@ -189,6 +269,17 @@ export type RaceGenerator<
   TRaceMap extends { [key in TRaceKey]: TInternalSaga },
   TRaceReturn extends { [key in TRaceKey]?: GeneratorReturnType<TRaceMap[key]> }
 > = Generator<RaceEffect<TRaceKey, TRaceMap>, TRaceReturn, void>;
+
+export const race = <
+  TRaceKey extends string,
+  TRaceMap extends { [key in TRaceKey]: TInternalSaga }
+>(
+  raceMap: TRaceMap,
+  joinMode: JoinMode = JoinMode.DONE
+) => ({
+  type: EffectType.RACE,
+  effectData: { raceMap, joinMode },
+});
 
 const isRaceEffect = <
   TRaceKey extends string,
@@ -215,12 +306,68 @@ export type AllGenerator<
   TAllReturn extends { [key in TAllKey]?: GeneratorReturnType<TAllMap[key]> }
 > = Generator<AllEffect<TAllKey, TAllMap>, TAllReturn, void>;
 
+export const all = <
+  TAllKey extends string,
+  TAllMap extends { [key in TAllKey]: TInternalSaga }
+>(
+  allMap: TAllMap,
+  joinMode: JoinMode = JoinMode.DONE
+) => ({
+  type: EffectType.ALL,
+  effectData: { allMap, joinMode },
+});
+
 const isAllEffect = <
   TAllKey extends string,
   TAllMap extends { [key in TAllKey]: TInternalSaga }
 >(
   value: any
 ): value is AllEffect<TAllKey, TAllMap> => value?.type === EffectType.ALL;
+
+export interface IsPausedEffectData {
+  task?: Task | undefined;
+}
+export type IsPausedEffect = BaseEffect<
+  EffectType.IS_PAUSED,
+  IsPausedEffectData
+>;
+export type IsPausedGenerator = Generator<IsPausedEffect, boolean, void>;
+export const isPaused = (task?: Task | undefined): IsPausedEffect => ({
+  type: EffectType.IS_PAUSED,
+  effectData: { task },
+});
+const isPausedEffect = (effect: any): effect is IsPausedEffect =>
+  effect && effect.type === EffectType.IS_PAUSED;
+
+export interface IsStoppedEffectData {
+  task?: Task | undefined;
+}
+export type IsStoppedEffect = BaseEffect<
+  EffectType.IS_STOPPED,
+  IsStoppedEffectData
+>;
+export type IsStoppedGenerator = Generator<IsStoppedEffect, boolean, void>;
+export const isStopped = (task?: Task | undefined): IsStoppedEffect => ({
+  type: EffectType.IS_STOPPED,
+  effectData: { task },
+});
+const isStoppedEffect = (effect: any): effect is IsStoppedEffect =>
+  effect && effect.type === EffectType.IS_STOPPED;
+
+export interface IsCancelledEffectData {
+  task: Task;
+}
+export type IsCancelledEffect = BaseEffect<
+  EffectType.IS_CANCELLED,
+  IsCancelledEffectData
+>;
+export type IsCancelledGenerator = Generator<IsCancelledEffect, boolean, void>;
+export const isCancelled = (task: Task): IsCancelledEffect => ({
+  type: EffectType.IS_CANCELLED,
+  effectData: { task },
+});
+const isCancelledEffect = (effect: any): effect is IsCancelledEffect =>
+  effect && effect.type === EffectType.IS_CANCELLED;
 
 export type ReturnGenerator<TReturn> = Generator<void, TReturn, void>;
 
@@ -244,12 +391,16 @@ export type ProcessSaga<
   | FreezeGenerator
   | StopGenerator
   | PauseGenerator
+  | ResumeGenerator
   | TakeGenerator<TChannelToken, TChannelData>
   | PutGenerator<TChannelToken, TChannelData>
   | TakeMaybeGenerator<TChannelToken, TChannelData>
   | JoinGenerator
   | RaceGenerator<TRaceKeys, TRaceMap, TRaceReturn>
   | AllGenerator<TAllKeys, TAllMap, TAllReturn>
+  | IsPausedGenerator
+  | IsStoppedGenerator
+  | IsCancelledGenerator
   | ReturnGenerator<TSagaReturn>;
 
 type TInternalSaga = ProcessSaga<
@@ -302,8 +453,14 @@ export const processGenerator = function* <
   let forwardParam: any = undefined;
 
   while (true) {
-    const { cancelProcess, stopProcess, pauseProcess, isStopped, isDone } =
-      controls;
+    const {
+      cancelProcess,
+      stopProcess,
+      pauseProcess,
+      resumeProcess,
+      isStopped,
+      isDone,
+    } = controls;
     const { currentPriority } = controls.params;
 
     const result = saga.next(forwardParam);
@@ -328,6 +485,14 @@ export const processGenerator = function* <
       }
     }
 
+    if (isResumeEffect(result.value)) {
+      if (result.value?.effectData === undefined) {
+        resumeProcess({ token: controls.params.token });
+      } else {
+        resumeProcess(result.value?.effectData);
+      }
+    }
+
     if (isStopEffect(result.value)) {
       if (result.value?.effectData === undefined) {
         stopProcess({ token: controls.params.token });
@@ -342,6 +507,31 @@ export const processGenerator = function* <
       } else {
         cancelProcess(result.value?.effectData);
       }
+    }
+
+    if (isPausedEffect(result.value)) {
+      const { task } = result.value.effectData;
+
+      if (task) {
+        forwardParam = isPaused(task);
+      } else {
+        forwardParam = isPaused({ token: controls.params.token });
+      }
+    }
+
+    if (isStoppedEffect(result.value)) {
+      const { task } = result.value.effectData;
+
+      if (task) {
+        forwardParam = isPaused(task);
+      } else {
+        forwardParam = isPaused({ token: controls.params.token });
+      }
+    }
+
+    if (isCancelledEffect(result.value)) {
+      const { task } = result.value.effectData;
+      forwardParam = isPaused(task);
     }
 
     if (isFreezeEffect(result.value)) {
@@ -408,7 +598,7 @@ export const processGenerator = function* <
     if (isJoinEffect(result.value)) {
       const { joinMode, tasks } = result.value.effectData;
 
-      const isAllTasksDone = all<Task>((task) => {
+      const isAllTasksDone = allR<Task>((task) => {
         if (joinMode === JoinMode.STOPPED) {
           return isStopped(task);
         } else {

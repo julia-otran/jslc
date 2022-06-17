@@ -31,6 +31,7 @@ export interface FrameControls {
   cancelProcess(task: Task): void;
   stopProcess(task: Task): void;
   pauseProcess(task: Task): void;
+  resumeProcess(task: Task): void;
   params: ProcessCallbackParams;
   getStackMixedChannels(): ChannelMixedMap;
   getValues(): ChannelMixMap;
