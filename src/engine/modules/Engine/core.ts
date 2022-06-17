@@ -1,4 +1,4 @@
-import { groupBy, pipe, sort, flatten, reduce } from 'ramda';
+import { groupBy, pipe, sort, flatten, reduce, map } from 'ramda';
 import { v4 as uuidV4 } from 'uuid';
 
 import { DMXData, DMXValue, dmxChannels } from './devices';
@@ -22,81 +22,80 @@ import {
   ChannelMixedMap,
   ChannelOutput,
 } from './channel-group-types';
-import { Token, Process, ProcessStatus, ProcessCallback } from './core-types';
+import {
+  Token,
+  Process,
+  ProcessStatus,
+  ProcessPriority,
+  ProcessCallbackParams,
+  Task,
+} from './core-types';
 import { sleep, channelValueToValue, valueToChannelValue } from './utils';
 import { getChannelMSB, getChannelLSB } from './channel-lsb';
 
-interface InternalPriority {
-  major: number;
-  minor: number;
-}
-
-interface OutputFunction {
+interface OutputFunction<TReturn = any> {
   token: Token;
-  process: Process;
+  process: Process<void>;
   status: ProcessStatus;
-  priority: InternalPriority;
+  priority: ProcessPriority;
+  lastReturn: TReturn;
+  done: boolean;
+  gcCount: number;
 }
 
 let outputFunctions: OutputFunction[] = [];
 
 export const getNextPriority = (): number => {
-  const prio = Math.max(...outputFunctions.map((fn) => fn.priority.major));
+  const prio = Math.max(...outputFunctions.map((fn) => fn.priority[0]));
   return isFinite(prio) ? prio + 1 : 0;
 };
 
-const getNextMinorPriority = (major: number): number => {
-  const prio = Math.max(
-    ...outputFunctions
-      .filter((fn) => fn.priority.major === major)
-      .map((fn) => fn.priority.minor)
-  );
-  return isFinite(prio) ? prio + 1 : 0;
-};
-
-export const addProcess = (
-  priority: number,
-  processCb: ProcessCallback
-): Token => {
-  const minorPriority = getNextMinorPriority(priority);
+const addProcess = (
+  priority: ProcessPriority,
+  process: Process<void>
+): ProcessCallbackParams => {
   const token = uuidV4();
   const status = { stopped: false, paused: false };
-  const process = processCb({ status, token });
-
-  process.next();
 
   outputFunctions.push({
-    status,
-    priority: { major: priority, minor: minorPriority },
+    gcCount: 0,
+    done: false,
+    lastReturn: undefined,
     process,
+    status,
+    priority,
     token,
   });
 
-  return token;
+  return { token, status, currentPriority: priority };
 };
 
-export const pauseProcess = (token: Token): void => {
-  const fn = outputFunctions.find((fn) => fn.token === token);
+export const pauseProcess = (task: Task): void => {
+  const fn = outputFunctions.find((fn) => fn.token === task.token);
 
   if (fn) {
     fn.status.paused = true;
   }
 };
 
-export const resumeProcess = (token: Token): void => {
-  const fn = outputFunctions.find((fn) => fn.token === token);
+export const resumeProcess = (task: Task): void => {
+  const fn = outputFunctions.find((fn) => fn.token === task.token);
 
   if (fn) {
     fn.status.paused = false;
   }
 };
 
-export const stopProcess = (token: Token): void => {
-  const fn = outputFunctions.find((fn) => fn.token === token);
+export const stopProcess = (task: Task): void => {
+  const fn = outputFunctions.find((fn) => fn.token === task.token);
 
   if (fn) {
     fn.status.stopped = true;
   }
+};
+
+export const cancelProcess = (task: Task): void => {
+  outputFunctions = outputFunctions.filter((fn) => fn.token !== task.token);
 };
 
 let processingUniverses: Universe[] = [];
@@ -115,14 +114,63 @@ export const stopProcessUniverse = (universe: Universe) => {
 
 addUniverseRemovedCallback(stopProcessUniverse);
 
-const groupAndSortByPriorityMajor = pipe(
-  groupBy((fn: OutputFunction) => fn.priority.major.toString()),
-  Object.values,
-  sort(
-    (a: OutputFunction[], b: OutputFunction[]) =>
-      a[0].priority.major - b[0].priority.major
-  )
-);
+export const isStopped = (task: Task): boolean => {
+  const fn = outputFunctions.find((fn) => fn.token === task.token);
+
+  if (fn) {
+    return fn.status.stopped;
+  }
+
+  return true;
+};
+
+export const isDone = (task: Task): boolean => {
+  const fn = outputFunctions.find((fn) => fn.token === task.token);
+
+  if (fn) {
+    return fn.done;
+  }
+
+  return true;
+};
+
+export const getReturn = (task: Task): any => {
+  const fn = outputFunctions.find((fn) => fn.token === task.token);
+
+  if (fn) {
+    return fn.lastReturn;
+  }
+
+  return undefined;
+};
+
+const garbageCollectOutputFunctions = (): void => {
+  outputFunctions.forEach((fn) => {
+    if (fn.done) {
+      fn.gcCount += 1;
+    }
+  });
+
+  outputFunctions = outputFunctions.filter((fn) => fn.gcCount < 44);
+};
+
+type SortByPriority = (outputFunction: OutputFunction[]) => OutputFunction[];
+
+const sortByPriority = (index: number): SortByPriority =>
+  pipe(
+    groupBy((fn: OutputFunction) => (fn.priority[index] || 0).toString()),
+    Object.values,
+    sort<OutputFunction[]>(
+      (a: OutputFunction[], b: OutputFunction[]) =>
+        (a[0].priority[index] || 0) - (b[0].priority[index] || 0)
+    ),
+    map<OutputFunction[], OutputFunction[]>((arr) =>
+      arr[0].priority[index] === undefined
+        ? arr
+        : sortByPriority(index + 1)(arr)
+    ),
+    flatten
+  );
 
 const valueWeightCalc = (
   current: number,
@@ -268,15 +316,28 @@ const reduceFunctions = (
   };
 
   let processOutput = fn.process.next({
+    addProcess,
+    stopProcess,
+    cancelProcess,
+    pauseProcess,
     getStackMixedChannels,
     getValues,
     setValues,
     pushValues,
-    params: { status: fn.status, token: fn.token },
+    isStopped,
+    isDone,
+    getReturn,
+    params: {
+      status: fn.status,
+      token: fn.token,
+      currentPriority: fn.priority,
+    },
   });
 
+  fn.lastReturn = processOutput.value;
+
   if (processOutput.done) {
-    outputFunctions = outputFunctions.filter((o) => o.token !== fn.token);
+    fn.done = true;
   }
 
   if (newValues === undefined || newValues.length <= 0) {
@@ -314,13 +375,13 @@ const sanitizeValue = (data: number | undefined): DMXValue =>
   Math.max(0, Math.min(255, Math.round(data || 0)));
 
 const processUniverses = (): Promise<void> => {
-  const fns = flatten(
-    groupAndSortByPriorityMajor(outputFunctions).map((fns) =>
-      fns.sort((a, b) => a.priority.minor - b.priority.minor)
-    )
-  );
+  garbageCollectOutputFunctions();
 
-  const channelMap: ChannelMap = reduce(reduceFunctions, [], fns);
+  const channelMap: ChannelMap = reduce(
+    reduceFunctions,
+    [],
+    sortByPriority(0)(outputFunctions.filter((fn) => fn.done === false))
+  );
 
   const pendingWrites: Promise<void>[] = [];
 
