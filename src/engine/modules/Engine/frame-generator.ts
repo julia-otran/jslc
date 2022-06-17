@@ -681,7 +681,7 @@ export const processGenerator = function* <
           }
         });
 
-        if (all((r) => r.done, statuses)) {
+        if (allR((r) => r.done, statuses)) {
           forwardParam = results;
           break;
         }
