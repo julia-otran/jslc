@@ -5,8 +5,7 @@ import {
   Universe,
   setDefaultUniverse,
   startProcessing,
-  addProcess,
-  getNextPriority,
+  addGenerator,
   ChannelGroup,
   fadeInWithOutByWeight,
   stopProcess,
@@ -23,12 +22,11 @@ const prepareUI = () => {
   dimmerChannelGroup.addChannel({ universe, start: 1, offset: 0 });
   redChannelGroup.addChannel({ universe, start: 1, offset: 1 });
 
-  addProcess(getNextPriority(), () =>
+  addGenerator(
     keepValue({ channelGroup: redChannelGroup, targetValue: { valueMSB: 255 } })
   );
 
-  const token = addProcess(
-    getNextPriority(),
+  const token = addGenerator(
     fadeInWithOutByWeight({
       channelGroup: dimmerChannelGroup,
       durationMs: 2000,

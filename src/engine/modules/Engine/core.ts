@@ -35,7 +35,7 @@ import { getChannelMSB, getChannelLSB } from './channel-lsb';
 
 interface OutputFunction<TReturn = any> {
   token: Token;
-  process: Process<void>;
+  process: Process<TReturn>;
   status: ProcessStatus;
   priority: ProcessPriority;
   lastReturn: TReturn;
@@ -50,9 +50,9 @@ export const getNextPriority = (): number => {
   return isFinite(prio) ? prio + 1 : 0;
 };
 
-const addProcess = (
+const addProcess = <TReturn>(
   priority: ProcessPriority,
-  process: Process<void>
+  process: Process<TReturn>
 ): ProcessCallbackParams => {
   const token = uuidV4();
   const status = { stopped: false, paused: false };
@@ -68,6 +68,12 @@ const addProcess = (
   });
 
   return { token, status, currentPriority: priority };
+};
+
+export const addRootProcess = <TReturn>(
+  process: Process<TReturn>
+): ProcessCallbackParams => {
+  return addProcess([getNextPriority()], process);
 };
 
 export const pauseProcess = (task: Task): void => {
@@ -95,7 +101,9 @@ export const stopProcess = (task: Task): void => {
 };
 
 export const cancelProcess = (task: Task): void => {
-  outputFunctions = outputFunctions.filter((fn) => fn.token !== task.token);
+  outputFunctions
+    .filter((fn) => fn.token === task.token)
+    .forEach((fn) => (fn.done = true));
 };
 
 let processingUniverses: Universe[] = [];
@@ -114,7 +122,17 @@ export const stopProcessUniverse = (universe: Universe) => {
 
 addUniverseRemovedCallback(stopProcessUniverse);
 
-export const isStopped = (task: Task): boolean => {
+export const isTaskPaused = (task: Task): boolean => {
+  const fn = outputFunctions.find((fn) => fn.token === task.token);
+
+  if (fn) {
+    return fn.status.paused;
+  }
+
+  return false;
+};
+
+export const isTaskStopped = (task: Task): boolean => {
   const fn = outputFunctions.find((fn) => fn.token === task.token);
 
   if (fn) {
@@ -124,7 +142,7 @@ export const isStopped = (task: Task): boolean => {
   return true;
 };
 
-export const isDone = (task: Task): boolean => {
+export const isTaskDone = (task: Task): boolean => {
   const fn = outputFunctions.find((fn) => fn.token === task.token);
 
   if (fn) {
@@ -134,7 +152,7 @@ export const isDone = (task: Task): boolean => {
   return true;
 };
 
-export const getReturn = (task: Task): any => {
+export const getTaskReturn = (task: Task): any => {
   const fn = outputFunctions.find((fn) => fn.token === task.token);
 
   if (fn) {
@@ -315,6 +333,10 @@ const reduceFunctions = (
     newValues.push(...fixChInput(values));
   };
 
+  const setReturn = <TReturn>(data: TReturn): void => {
+    fn.lastReturn = data;
+  };
+
   let processOutput = fn.process.next({
     addProcess,
     stopProcess,
@@ -325,17 +347,17 @@ const reduceFunctions = (
     getValues,
     setValues,
     pushValues,
-    isStopped,
-    isDone,
-    getReturn,
+    isTaskPaused,
+    isTaskStopped,
+    isTaskDone,
+    getReturn: getTaskReturn,
+    setReturn,
     params: {
       status: fn.status,
       token: fn.token,
       currentPriority: fn.priority,
     },
   });
-
-  fn.lastReturn = processOutput.value;
 
   if (processOutput.done) {
     fn.done = true;
@@ -378,11 +400,11 @@ const sanitizeValue = (data: number | undefined): DMXValue =>
 const processUniverses = (): Promise<void> => {
   garbageCollectOutputFunctions();
 
-  const channelMap: ChannelMap = reduce(
-    reduceFunctions,
-    [],
-    sortByPriority(0)(outputFunctions.filter((fn) => fn.done === false))
+  const functions = sortByPriority(0)(
+    outputFunctions.filter((fn) => fn.done === false)
   );
+
+  const channelMap: ChannelMap = reduce(reduceFunctions, [], functions);
 
   const pendingWrites: Promise<void>[] = [];
 

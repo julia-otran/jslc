@@ -21,9 +21,9 @@ export interface ProcessCallbackParams {
   currentPriority: ProcessPriority;
 }
 
-export type Process<TReturn> = Generator<void, TReturn, FrameControls>;
+export type Process<TReturn> = Generator<void, void, FrameControls<TReturn>>;
 
-export interface FrameControls {
+export interface FrameControls<TReturn> {
   addProcess(
     priority: ProcessPriority,
     process: Process<void>
@@ -37,7 +37,9 @@ export interface FrameControls {
   getValues(): ChannelMixMap;
   setValues(values: ChannelMixMapWithDefault): void;
   pushValues(values: ChannelMixMapWithDefault): void;
-  isStopped(task: Task): boolean;
-  isDone(task: Task): boolean;
+  isTaskPaused(task: Task): boolean;
+  isTaskStopped(task: Task): boolean;
+  isTaskDone(task: Task): boolean;
   getReturn(task: Task): any;
+  setReturn(data: TReturn): void;
 }
