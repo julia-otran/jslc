@@ -3,11 +3,38 @@ import {
   EngineRequestDevicesOutputMessage,
   EngineDevicesInputMessage,
   EngineInputMessageNames,
+  EngineMidiInputDataInputMessage,
   EngineWriteToDeviceDoneInputMessage,
   EngineWriteToDeviceOutputMessage,
+  EngineEnableMidiInputOutputMessage,
 } from '../../../engine';
 
 import { registerMessageListener, sendMessage } from './messaging';
+
+interface MidiInputData {
+  midiInputId: number;
+  deltaTime: string;
+  message: number[];
+}
+
+window.electron.ipcRenderer.on(
+  'midi-input-data',
+  (...args: unknown[]): void => {
+    const data = args[0] as MidiInputData;
+
+    sendMessage<EngineMidiInputDataInputMessage>({
+      message: EngineInputMessageNames.MIDI_INPUT_DATA,
+      data,
+    });
+  }
+);
+
+registerMessageListener<EngineEnableMidiInputOutputMessage>(
+  EngineOutputMessageNames.ENABLE_MIDI_INPUT,
+  (msg) => {
+    window.electron.ipcRenderer.enableMidiInput(msg.requestId, msg.midiInputId);
+  }
+);
 
 interface Devices {
   requestId: string;
@@ -22,7 +49,7 @@ interface Devices {
   };
 }
 
-window.electron.ipcRenderer.on('devices-found', (...args: unknown[]) => {
+window.electron.ipcRenderer.on('devices-found', (...args: unknown[]): void => {
   const devices = args[0] as Devices;
 
   console.log(devices);

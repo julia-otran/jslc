@@ -28,6 +28,7 @@ export default class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 
 const midiInput = new midi.Input();
+const midiInputs: Record<number, midi.Input> = {};
 
 interface OpenDevice {
   path: string;
@@ -99,7 +100,19 @@ ipcMain.on('load-devices', async (event, requestId: string) => {
 ipcMain.on(
   'enable-midi-input',
   async (event, requestId: string, midiInputId: number) => {
-    midiInput.openPort(midiInputId);
+    console.log(`Openning midi input port ${midiInputId}`);
+
+    if (midiInputs[midiInputId] === undefined) {
+      midiInputs[midiInputId] = new midi.Input();
+      midiInputs[midiInputId].openPort(midiInputId);
+    }
+
+    const input = midiInputs[midiInputId];
+
+    input.on('message', (deltaTime, message) => {
+      console.log({ message, deltaTime });
+      event.reply('midi-input-data', { midiInputId, deltaTime, message });
+    });
   }
 );
 

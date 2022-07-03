@@ -1,7 +1,14 @@
 import { groupBy, pipe, sort, flatten, reduce, map } from 'ramda';
 import { v4 as uuidV4 } from 'uuid';
 
-import { DMXData, DMXValue, dmxChannels } from './devices';
+import {
+  DMXData,
+  DMXValue,
+  dmxChannels,
+  readFromInputDevice,
+  getInputDeviceIds,
+  InputDeviceId,
+} from './devices';
 import {
   addUniverseCreatedCallback,
   Universe,
@@ -160,6 +167,16 @@ export const getTaskReturn = (task: Task): any => {
   }
 
   return undefined;
+};
+
+let inputDevicesData: Record<InputDeviceId, any> = {};
+
+const consumeInputDevices = (): void => {
+  inputDevicesData = {};
+
+  getInputDeviceIds().forEach((inputDeviceId) => {
+    inputDevicesData[inputDeviceId] = readFromInputDevice(inputDeviceId);
+  });
 };
 
 const garbageCollectOutputFunctions = (): void => {
@@ -337,6 +354,12 @@ const reduceFunctions = (
     fn.lastReturn = data;
   };
 
+  const readFromInputDeviceInt = <TData>(
+    inputDeviceId: InputDeviceId
+  ): TData | undefined => {
+    return inputDevicesData[inputDeviceId];
+  };
+
   let processOutput = fn.process.next({
     addProcess,
     stopProcess,
@@ -352,6 +375,7 @@ const reduceFunctions = (
     isTaskDone,
     getReturn: getTaskReturn,
     setReturn,
+    readFromInputDevice: readFromInputDeviceInt,
     params: {
       status: fn.status,
       token: fn.token,
@@ -452,6 +476,8 @@ export const startProcessing = async () => {
         console.error('Engine error: No universes to process');
         throw new Error('No universes to process');
       }
+
+      consumeInputDevices();
 
       await processUniverses();
 

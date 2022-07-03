@@ -1,6 +1,7 @@
 import { v4 as uuidV4 } from 'uuid';
 import { all as allR, any } from 'ramda';
 
+import { InputDeviceId } from './devices';
 import { ChannelMixMap, ChannelMixMapWithDefault } from './channel-group-types';
 import { Process, Task, ProcessCallbackParams } from './core-types';
 import { addRootProcess } from './core';
@@ -23,6 +24,7 @@ export enum EffectType {
   IS_STOPPED = 'IS_STOPPED',
   IS_CANCELLED = 'IS_CANCELLED',
   PUSH_VALUES = 'PUSH_VALUES',
+  READ_FROM_INPUT_DEVICE = 'READ_FROM_INPUT_DEVICE',
 }
 
 type GeneratorReturnType<T extends Generator> = T extends Generator<
@@ -342,6 +344,25 @@ const isPushValuesEffect = (effect: any): effect is PushValuesEffect => {
   return effect && effect.type === EffectType.PUSH_VALUES;
 };
 
+export interface ReadFromInputDeviceEffectData {
+  inputDeviceId: InputDeviceId;
+}
+export type ReadFromInputDeviceEffect = BaseEffect<
+  EffectType.READ_FROM_INPUT_DEVICE,
+  ReadFromInputDeviceEffectData
+>;
+export const readFromInputDevice = (
+  inputDeviceId: InputDeviceId
+): ReadFromInputDeviceEffect => ({
+  type: EffectType.READ_FROM_INPUT_DEVICE,
+  effectData: { inputDeviceId },
+});
+const isReadFromInputDeviceEffect = (
+  effect: any
+): effect is ReadFromInputDeviceEffect => {
+  return effect && effect.type === EffectType.READ_FROM_INPUT_DEVICE;
+};
+
 export type ReturnGenerator<TReturn> = Generator<void, TReturn, void>;
 
 export type Effects<
@@ -370,11 +391,14 @@ export type Effects<
   | IsStoppedEffect
   | IsCancelledEffect
   | PushValuesEffect
+  | ReadFromInputDeviceEffect
   | void;
 
 export type Nexts<
   TChannelToken extends string,
   TChannelReturn extends { [key in TChannelToken]?: any },
+  TReadFromInputDeviceKey extends InputDeviceId,
+  TReadFromInputDeviceReturn extends { [key in InputDeviceId]?: any },
   TRaceKey extends string,
   TRaceMap extends { [key in TRaceKey]: TInternalSaga },
   TAllKey extends string,
@@ -384,6 +408,7 @@ export type Nexts<
   | undefined
   | boolean
   | ForkEffectReturn
+  | TReadFromInputDeviceReturn[TReadFromInputDeviceKey]
   | TChannelReturn[TChannelToken]
   | GeneratorReturnType<TRaceMap[TRaceKey]>
   | GeneratorReturnType<TAllMap[TAllKey]>;
@@ -393,6 +418,8 @@ export type ProcessSaga<
   TChannelData extends {
     [key in EffectChannelToken<TChannelToken>]: any;
   } = any,
+  TReadFromInputDeviceKey extends InputDeviceId = any,
+  TReadFromInputDeviceReturn extends { [key in InputDeviceId]?: any } = any,
   TRaceKeys extends string = any,
   TRaceMap extends { [key in TRaceKeys]: TInternalSaga } = any,
   TAllKeys extends string = any,
@@ -410,7 +437,16 @@ export type ProcessSaga<
     TForkSaga
   >,
   TSagaReturn,
-  Nexts<TChannelToken, TChannelData, TRaceKeys, TRaceMap, TAllKeys, TAllMap>
+  Nexts<
+    TChannelToken,
+    TChannelData,
+    TReadFromInputDeviceKey,
+    TReadFromInputDeviceReturn,
+    TRaceKeys,
+    TRaceMap,
+    TAllKeys,
+    TAllMap
+  >
 >;
 
 type TInternalSaga = ProcessSaga;
@@ -656,6 +692,10 @@ export const processGenerator = function* <
       }
     } else if (isPushValuesEffect(result.value)) {
       pushValues(result.value.effectData.values);
+    } else if (isReadFromInputDeviceEffect(result.value)) {
+      forwardParam = controls.readFromInputDevice(
+        result.value.effectData.inputDeviceId
+      );
     } else if (isWaitNextFrameEffect(result.value)) {
       loopCount = 0;
       channelMixStack = controls.getValues();

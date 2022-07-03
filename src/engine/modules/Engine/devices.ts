@@ -1,7 +1,8 @@
 type DeviceWriteCb = (data: DMXData) => Promise<void>;
+type DeviceReadCb<TData> = () => TData;
 
 export type DmxOutputDeviceId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-export type MidiInputDeviceId = number;
+export type InputDeviceId = number;
 
 export const isDmxOutputDeviceId = (id: number): id is DmxOutputDeviceId => {
   return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].find((n) => n === id) !== undefined;
@@ -12,8 +13,14 @@ export type DmxOutputDevice = {
   write: DeviceWriteCb;
 };
 
+export type InputDevice<TData> = {
+  id: InputDeviceId;
+  read: DeviceReadCb<TData>;
+};
+
 export type DevicesChangeCallback = ({}: {
-  dmxOutputDevices: DmxOutputDevice[];
+  dmxOutputDeviceIds: DmxOutputDeviceId[];
+  inputDeviceIds: InputDeviceId[];
 }) => void;
 
 export type DMXChannel = number;
@@ -22,6 +29,8 @@ export type DMXValue = number;
 export type DMXData = Uint8Array;
 
 let dmxOutputDevices: DmxOutputDevice[] = [];
+let inputDevices: InputDevice<any>[] = [];
+
 let deviceChangeCallbacks: DevicesChangeCallback[] = [];
 
 export const dmxChannels = (): DMXChannel[] => {
@@ -32,6 +41,15 @@ export const dmxChannels = (): DMXChannel[] => {
 
 export const getDmxOutputDeviceIds = (): DmxOutputDeviceId[] => {
   return dmxOutputDevices.map((dev) => dev.id);
+};
+
+const triggerChangeCallbacks = (): void => {
+  deviceChangeCallbacks.forEach((cb) =>
+    cb({
+      dmxOutputDeviceIds: dmxOutputDevices.map((d) => d.id),
+      inputDeviceIds: inputDevices.map((d) => d.id),
+    })
+  );
 };
 
 export const registerDmxOutputDevice = (
@@ -45,17 +63,20 @@ export const registerDmxOutputDevice = (
   console.log(`Registering output dmx device ${id}`);
 
   dmxOutputDevices.push({ id, write });
-  deviceChangeCallbacks.forEach((cb) => cb({ dmxOutputDevices }));
+
+  triggerChangeCallbacks();
 };
 
 export const unregisterDmxOutputDevice = (id: DmxOutputDeviceId): void => {
   dmxOutputDevices = dmxOutputDevices.filter((d) => d.id !== id);
-  deviceChangeCallbacks.forEach((cb) => cb({ dmxOutputDevices }));
+
+  triggerChangeCallbacks();
 };
 
 export const addDevicesChangeCallback = (cb: DevicesChangeCallback): void => {
   deviceChangeCallbacks.push(cb);
-  cb({ dmxOutputDevices });
+
+  triggerChangeCallbacks();
 };
 
 export const removeDevicesChangeCallback = (
@@ -65,16 +86,18 @@ export const removeDevicesChangeCallback = (
 };
 
 export const writeToDmxDevice = (
-  outputDeviceId: DmxOutputDeviceId,
+  dmxOutputDeviceId: DmxOutputDeviceId,
   data: DMXData
 ): Promise<void> => {
-  const outputDevice = dmxOutputDevices.find((d) => d.id === outputDeviceId);
+  const dmxOutputDevice = dmxOutputDevices.find(
+    (d) => d.id === dmxOutputDeviceId
+  );
 
-  if (outputDevice === undefined) {
+  if (dmxOutputDevice === undefined) {
     return Promise.reject();
   }
 
-  return outputDevice.write(data);
+  return dmxOutputDevice.write(data);
 };
 
 export const validateDMXChannel = (n: DMXChannel): void => {
@@ -103,4 +126,40 @@ export const validateDMXValue = (v: DMXValue): void => {
   if (parseInt(v.toString()) !== v) {
     throw new Error(`Value ${v} is not integer.`);
   }
+};
+
+export const getInputDeviceIds = (): Array<InputDeviceId> =>
+  inputDevices.map((d) => d.id);
+
+export const registerInputDevice = <TData = any>(
+  id: InputDeviceId,
+  read: DeviceReadCb<TData>
+): void => {
+  if (inputDevices.find((d) => d.id === id) !== undefined) {
+    throw new Error(`Input device with id {id} already registered`);
+  }
+
+  console.log(`Registering input device ${id}`);
+
+  inputDevices.push({ id, read });
+
+  triggerChangeCallbacks();
+};
+
+export const unregisterInputDevice = (id: InputDeviceId): void => {
+  inputDevices = inputDevices.filter((d) => d.id !== id);
+
+  triggerChangeCallbacks();
+};
+
+export const readFromInputDevice = <TData>(
+  inputDeviceId: InputDeviceId
+): TData | undefined => {
+  const inputDevice = inputDevices.find((d) => d.id === inputDeviceId);
+
+  if (inputDevice === undefined) {
+    return undefined;
+  }
+
+  return inputDevice.read();
 };

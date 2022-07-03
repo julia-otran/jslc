@@ -12,11 +12,13 @@ export { isDmxOutputDeviceId };
 export enum EngineOutputMessageNames {
   REQUEST_DEVICES = 'request-devices',
   WRITE_TO_DEVICE = 'write-to-device',
+  ENABLE_MIDI_INPUT = 'enable-midi-input',
 }
 
 export enum EngineInputMessageNames {
   DEVICES_FOUND = 'devices-found',
   WRITE_TO_DEVICE_DONE = 'write-to-device-done',
+  MIDI_INPUT_DATA = 'midi-input-data',
 }
 
 export interface EngineOutputMessage<
@@ -44,6 +46,16 @@ export type EngineRequestDevicesOutputMessage = EngineOutputMessage<
   EngineRequestDevicesOutputMessageData
 >;
 
+export interface EngineEnableMidiInputOutputMessageData {
+  requestId: string;
+  midiInputId: number;
+}
+
+export type EngineEnableMidiInputOutputMessage = EngineOutputMessage<
+  EngineOutputMessageNames.ENABLE_MIDI_INPUT,
+  EngineEnableMidiInputOutputMessageData
+>;
+
 export interface EngineDevicesInputMessageData {
   linuxDmxOutputDevices: number[];
   midiInputDevices: Array<{
@@ -66,6 +78,17 @@ export interface EngineWriteToDeviceDoneInputMessageData {
 export type EngineWriteToDeviceDoneInputMessage = EngineInputMessage<
   EngineInputMessageNames.WRITE_TO_DEVICE_DONE,
   EngineWriteToDeviceDoneInputMessageData
+>;
+
+export interface EngineMidiInputDataInputMessageData {
+  midiInputId: number;
+  message: number[];
+  deltaTime: string;
+}
+
+export type EngineMidiInputDataInputMessage = EngineInputMessage<
+  EngineInputMessageNames.MIDI_INPUT_DATA,
+  EngineMidiInputDataInputMessageData
 >;
 
 export interface EngineWriteToDeviceOutputMessageData {

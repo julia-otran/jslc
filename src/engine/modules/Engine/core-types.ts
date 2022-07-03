@@ -4,6 +4,8 @@ import {
   ChannelMixMapWithDefault,
 } from './channel-group-types';
 
+import { InputDeviceId } from './devices';
+
 export type Token = string;
 
 export type Task = { token: Token };
@@ -42,4 +44,5 @@ export interface FrameControls<TReturn> {
   isTaskDone(task: Task): boolean;
   getReturn(task: Task): any;
   setReturn(data: TReturn): void;
+  readFromInputDevice<TData>(inputDeviceId: InputDeviceId): TData | undefined;
 }

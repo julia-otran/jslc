@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
 
-export type Channels = 'dmx-data-done' | 'devices-found';
+export type Channels = 'dmx-data-done' | 'devices-found' | 'midi-input-data';
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {

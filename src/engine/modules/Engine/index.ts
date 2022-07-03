@@ -8,8 +8,11 @@ export {
   getDmxOutputDeviceIds,
   DMXData,
   DmxOutputDeviceId,
-  MidiInputDeviceId,
+  InputDeviceId,
   isDmxOutputDeviceId,
+  getInputDeviceIds,
+  registerInputDevice,
+  unregisterInputDevice,
 } from './devices';
 
 export * from './universes';
