@@ -1,11 +1,11 @@
 import { v4 as uuidV4 } from 'uuid';
 import {
-  registerDevice,
-  unregisterDevice,
-  getDeviceIds,
-  OutputDeviceId,
+  registerDmxOutputDevice,
+  unregisterDmxOutputDevice,
+  getDmxOutputDeviceIds,
+  DmxOutputDeviceId,
   DMXData,
-  isOutputDeviceId,
+  isDmxOutputDeviceId,
 } from '../Engine';
 
 import {
@@ -18,7 +18,9 @@ import {
 } from '../EngineMessaging';
 import { registerMessageListener, sendMessage } from './messaging';
 
-type DeviceReloadCallback = ({}: { outputDevices: OutputDeviceId[] }) => void;
+type DeviceReloadCallback = ({}: {
+  dmxOutputDevices: DmxOutputDeviceId[];
+}) => void;
 type DeviceReloadRequestId = string;
 
 const deviceReloadCallbacks: Record<
@@ -26,47 +28,56 @@ const deviceReloadCallbacks: Record<
   DeviceReloadCallback
 > = {};
 
-let registeredDevices: OutputDeviceId[] = [];
+let registeredDmxOutputDevices: DmxOutputDeviceId[] = [];
 
 registerMessageListener<EngineDevicesInputMessage>(
   EngineInputMessageNames.DEVICES_FOUND,
   (data) => {
-    const { outputDevices, requestId } = data;
-    console.log('Engine received outputDevices: ', data);
+    const { linuxDmxOutputDevices, requestId } = data;
+    console.log('Engine received devices: ', data);
 
-    outputDevices
-      .filter((d) => getDeviceIds().find((id) => id === d) === undefined)
+    linuxDmxOutputDevices
+      .filter(
+        (d) => getDmxOutputDeviceIds().find((id) => id === d) === undefined
+      )
       .forEach((deviceId: number) => {
-        if (isOutputDeviceId(deviceId)) {
-          registerDevice(deviceId, (dmxData) => {
+        if (isDmxOutputDeviceId(deviceId)) {
+          registerDmxOutputDevice(deviceId, (dmxData) => {
             return writeToDevice(deviceId, dmxData);
           });
 
-          registeredDevices.push(deviceId);
+          registeredDmxOutputDevices.push(deviceId);
         }
       });
 
-    getDeviceIds()
-      .filter((devId) => outputDevices.find((d) => d === devId) === undefined)
+    getDmxOutputDeviceIds()
       .filter(
-        (devId) => registeredDevices.find((d) => d === devId) !== undefined
+        (devId) => linuxDmxOutputDevices.find((d) => d === devId) === undefined
+      )
+      .filter(
+        (devId) =>
+          registeredDmxOutputDevices.find((d) => d === devId) !== undefined
       )
       .forEach((deviceId) => {
-        unregisterDevice(deviceId);
-        registeredDevices = registeredDevices.filter((d) => d !== deviceId);
+        unregisterDmxOutputDevice(deviceId);
+        registeredDmxOutputDevices = registeredDmxOutputDevices.filter(
+          (d) => d !== deviceId
+        );
       });
 
-    deviceReloadCallbacks[requestId]?.({ outputDevices: getDeviceIds() });
+    deviceReloadCallbacks[requestId]?.({
+      dmxOutputDevices: getDmxOutputDeviceIds(),
+    });
     delete deviceReloadCallbacks[requestId];
   }
 );
 
 export const reloadDevices = () =>
-  new Promise<{ outputDevices: OutputDeviceId[] }>((resolve) => {
+  new Promise<{ dmxOutputDevices: DmxOutputDeviceId[] }>((resolve) => {
     const requestId = uuidV4();
 
-    deviceReloadCallbacks[requestId] = ({ outputDevices }) => {
-      resolve({ outputDevices });
+    deviceReloadCallbacks[requestId] = ({ dmxOutputDevices }) => {
+      resolve({ dmxOutputDevices });
     };
 
     sendMessage<EngineRequestDevicesOutputMessage>({
@@ -96,7 +107,7 @@ registerMessageListener<EngineWriteToDeviceDoneInputMessage>(
 );
 
 const writeToDevice = (
-  outputDevice: OutputDeviceId,
+  dmxOutputDevice: DmxOutputDeviceId,
   data: DMXData
 ): Promise<void> => {
   return new Promise((resolve, reject) => {
@@ -130,7 +141,7 @@ const writeToDevice = (
 
     sendMessage<EngineWriteToDeviceOutputMessage>({
       message: EngineOutputMessageNames.WRITE_TO_DEVICE,
-      data: { requestId, outputDevice, dmxData },
+      data: { requestId, dmxOutputDevice, dmxData },
     });
   });
 };

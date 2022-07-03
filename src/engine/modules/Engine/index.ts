@@ -3,12 +3,13 @@ import './core';
 export {
   addDevicesChangeCallback,
   removeDevicesChangeCallback,
-  registerDevice,
-  unregisterDevice,
-  getDeviceIds,
+  registerDmxOutputDevice,
+  unregisterDmxOutputDevice,
+  getDmxOutputDeviceIds,
   DMXData,
-  OutputDeviceId,
-  isOutputDeviceId,
+  DmxOutputDeviceId,
+  MidiInputDeviceId,
+  isDmxOutputDeviceId,
 } from './devices';
 
 export * from './universes';

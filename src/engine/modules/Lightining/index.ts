@@ -1,5 +1,5 @@
 import {
-  registerDevice,
+  registerDmxOutputDevice,
   addDevicesChangeCallback,
   createUniverse,
   Universe,
@@ -39,24 +39,24 @@ const prepareUI = () => {
   startProcessing();
 };
 
-addDevicesChangeCallback(({ outputDevices }) => {
+addDevicesChangeCallback(({ dmxOutputDevices }) => {
   // Add "mock" device if none
-  if (outputDevices.length <= 0) {
+  if (dmxOutputDevices.length <= 0) {
     console.log('No output detected.');
   } else {
     if (!universe) {
       console.log('Creating universes');
-      universe = createUniverse(1, outputDevices[0]);
+      universe = createUniverse(1, dmxOutputDevices[0]);
       setDefaultUniverse(universe);
       prepareUI();
     }
   }
 });
 
-reloadDevices().then(({ outputDevices }) => {
-  if (outputDevices.length <= 0) {
+reloadDevices().then(({ dmxOutputDevices }) => {
+  if (dmxOutputDevices.length <= 0) {
     console.log('Registering dummy device');
-    registerDevice(9, () => {
+    registerDmxOutputDevice(9, () => {
       return new Promise((resolve) => setTimeout(resolve, 15));
     });
   }

@@ -1,13 +1,13 @@
 import {
-  OutputDeviceId as SrcOutputDeviceId,
+  DmxOutputDeviceId as SrcDmxOutputDeviceId,
   DMXData as SrcDMXData,
-  isOutputDeviceId,
+  isDmxOutputDeviceId,
 } from '../Engine';
 
-export type OutputDeviceId = SrcOutputDeviceId;
+export type DmxOutputDeviceId = SrcDmxOutputDeviceId;
 export type DMXData = SrcDMXData;
 
-export { isOutputDeviceId };
+export { isDmxOutputDeviceId };
 
 export enum EngineOutputMessageNames {
   REQUEST_DEVICES = 'request-devices',
@@ -45,7 +45,11 @@ export type EngineRequestDevicesOutputMessage = EngineOutputMessage<
 >;
 
 export interface EngineDevicesInputMessageData {
-  outputDevices: OutputDeviceId[];
+  linuxDmxOutputDevices: number[];
+  midiInputDevices: Array<{
+    id: number;
+    name: string;
+  }>;
   requestId: string;
 }
 
@@ -67,7 +71,7 @@ export type EngineWriteToDeviceDoneInputMessage = EngineInputMessage<
 export interface EngineWriteToDeviceOutputMessageData {
   dmxData: DMXData;
   requestId: string;
-  outputDevice: OutputDeviceId;
+  dmxOutputDevice: DmxOutputDeviceId;
 }
 
 export type EngineWriteToDeviceOutputMessage = EngineOutputMessage<

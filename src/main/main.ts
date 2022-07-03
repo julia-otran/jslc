@@ -8,7 +8,7 @@
  * When running `npm run build` or `npm run build:main`, this file is compiled to
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
-import jetpack from 'fs-jetpack';
+import midi from 'midi';
 import path from 'path';
 import { app, BrowserWindow, shell, ipcMain } from 'electron';
 import { autoUpdater } from 'electron-updater';
@@ -27,6 +27,8 @@ export default class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 
+const midiInput = new midi.Input();
+
 interface OpenDevice {
   path: string;
   id: number;
@@ -38,7 +40,7 @@ let openedDevices: OpenDevice[] = [];
 const getDevId = (path: string): number => parseInt(path.replace('dmx', ''));
 
 ipcMain.on('load-devices', async (event, requestId: string) => {
-  console.log('Loading DMX devices....');
+  console.log('Loading Linux output DMX devices....');
 
   const allDevices = await readdir('/dev');
 
@@ -66,12 +68,40 @@ ipcMain.on('load-devices', async (event, requestId: string) => {
     .map((r) => r.value)
     .forEach((dev) => openedDevices.push(dev));
 
-  event.reply(
-    'devices-found',
+  console.log('Loading Midi inputs....');
+
+  const midiInputPortCount = midiInput.getPortCount();
+
+  const midiInputPorts = [];
+
+  for (let i = 0; i < midiInputPortCount; i++) {
+    midiInputPorts.push({
+      id: i,
+      name: midiInput.getPortName(i).toString(),
+    });
+  }
+
+  const devices = {
     requestId,
-    openedDevices.map((dev) => dev.id)
-  );
+    inputs: {
+      midi: midiInputPorts,
+    },
+    outputs: {
+      linuxDMX: openedDevices.map((d) => d.id),
+    },
+  };
+
+  console.log(devices);
+
+  event.reply('devices-found', devices);
 });
+
+ipcMain.on(
+  'enable-midi-input',
+  async (event, requestId: string, midiInputId: number) => {
+    midiInput.openPort(midiInputId);
+  }
+);
 
 ipcMain.on(
   'dmx-data',

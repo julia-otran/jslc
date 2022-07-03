@@ -5,22 +5,36 @@ import {
   EngineInputMessageNames,
   EngineWriteToDeviceDoneInputMessage,
   EngineWriteToDeviceOutputMessage,
-  isOutputDeviceId,
-  OutputDeviceId,
 } from '../../../engine';
 
 import { registerMessageListener, sendMessage } from './messaging';
 
-window.electron.ipcRenderer.on('devices-found', (...args: unknown[]) => {
-  const requestId = args[0] as string;
+interface Devices {
+  requestId: string;
+  inputs: {
+    midi: Array<{
+      name: string;
+      id: number;
+    }>;
+  };
+  outputs: {
+    linuxDMX: Array<number>;
+  };
+}
 
-  const outputDevices = (args[1] as Array<number>).filter((d) =>
-    isOutputDeviceId(d)
-  ) as OutputDeviceId[];
+window.electron.ipcRenderer.on('devices-found', (...args: unknown[]) => {
+  const devices = args[0] as Devices;
+
+  console.log(devices);
+
+  const { requestId } = devices;
+
+  const linuxDmxOutputDevices = devices.outputs.linuxDMX;
+  const midiInputDevices = devices.inputs.midi;
 
   sendMessage<EngineDevicesInputMessage>({
     message: EngineInputMessageNames.DEVICES_FOUND,
-    data: { outputDevices, requestId },
+    data: { linuxDmxOutputDevices, midiInputDevices, requestId },
   });
 });
 
@@ -46,7 +60,7 @@ registerMessageListener<EngineWriteToDeviceOutputMessage>(
   (data) => {
     window.electron.ipcRenderer.writeDMX(
       data.requestId,
-      data.outputDevice,
+      data.dmxOutputDevice,
       data.dmxData
     );
   }

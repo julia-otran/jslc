@@ -7,6 +7,9 @@ contextBridge.exposeInMainWorld('electron', {
     requestDevices(requestId: string) {
       ipcRenderer.send('load-devices', requestId);
     },
+    enableMidiInput(requestId: string, midiInputId: number) {
+      ipcRenderer.send('enable-midi-input', requestId, midiInputId);
+    },
     writeDMX(requestId: string, devId: number, data: Uint8Array) {
       if (data.length !== 512) {
         console.error(
@@ -17,8 +20,9 @@ contextBridge.exposeInMainWorld('electron', {
       }
     },
     on(channel: Channels, func: (...args: unknown[]) => void) {
-      const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
+      const subscription = (_event: IpcRendererEvent, ...args: unknown[]) => {
         func(...args);
+      };
       ipcRenderer.on(channel, subscription);
 
       return () => ipcRenderer.removeListener(channel, subscription);

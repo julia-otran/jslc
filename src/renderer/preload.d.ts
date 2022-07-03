@@ -6,6 +6,7 @@ declare global {
       ipcRenderer: {
         requestDevices(requestId: string): void;
         writeDMX(requestId: string, devId: number, data: Uint8Array): void;
+        enableMidiInput(requestId: string, midiInputId: number): void;
         on(
           channel: string,
           func: (...args: unknown[]) => void

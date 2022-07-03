@@ -1,8 +1,8 @@
-import { OutputDevice, DMXData, writeToDevice } from './devices';
+import { DmxOutputDevice, DMXData, writeToDmxDevice } from './devices';
 
 export interface Universe {
   id: number;
-  outputDevice: OutputDevice;
+  outputDevice: DmxOutputDevice;
 }
 
 export type UniverseOrDefault = Universe | undefined;
@@ -41,7 +41,7 @@ export const removeUniverseRemovedCallback = (
 
 export const createUniverse = (
   id: number,
-  outputDevice: OutputDevice
+  outputDevice: DmxOutputDevice
 ): Universe => {
   if (universes[id]) {
     throw new Error('Universe ID already exists');
@@ -88,5 +88,5 @@ export const writeToUniverse = (
     throw new Error('Failed to find universe or default not set.');
   }
 
-  return writeToDevice(universe.outputDevice.id, data);
+  return writeToDmxDevice(universe.outputDevice.id, data);
 };
