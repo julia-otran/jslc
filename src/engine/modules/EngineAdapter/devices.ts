@@ -109,7 +109,7 @@ registerMessageListener<EngineDevicesInputMessage>(
       const inputDeviceId = Math.max(0, ...getInputDeviceIds()) + 1;
 
       registerInputDevice(inputDeviceId, () => {
-        const data = midiInputQueue[dev.id];
+        const data = midiInputQueue[dev.id] || [];
         midiInputQueue[dev.id] = [];
         return data;
       });

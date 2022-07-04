@@ -9,10 +9,8 @@ import {
   ChannelGroup,
   fadeInWithOutByWeight,
   InputDeviceId,
-  isStopped,
-  ProcessSaga,
-  waitNextFrame,
-  readFromInputDevice,
+  notesToChannelsMidiSynth,
+  linearVelocityToDmxValue,
 } from '../Engine';
 
 import { reloadDevices } from '../EngineAdapter';
@@ -27,18 +25,6 @@ let blueChannelGroup = new ChannelGroup();
 let whiteChannelGroup = new ChannelGroup();
 let ambarChannelGroup = new ChannelGroup();
 let uvChannelGroup = new ChannelGroup();
-
-function* linkWithMidi(): ProcessSaga {
-  while (!(yield isStopped())) {
-    if (midiInputId !== undefined) {
-      const inputData = yield readFromInputDevice(midiInputId);
-
-      console.log({ inputData });
-    }
-
-    yield waitNextFrame();
-  }
-}
 
 const prepareUI = () => {
   dimmerChannelGroup.addChannel({ universe, start: 1, offset: 0 });
@@ -70,7 +56,46 @@ const prepareUI = () => {
     })
   );
 
-  addGenerator(linkWithMidi());
+  if (midiInputId) {
+    console.log('generator added');
+    addGenerator(
+      notesToChannelsMidiSynth({
+        inputDeviceId: midiInputId,
+        notesMapping: [
+          {
+            note: 24,
+            channelGroup: redChannelGroup,
+            velocityToDmxValue: linearVelocityToDmxValue,
+          },
+          {
+            note: 26,
+            channelGroup: greenChannelGroup,
+            velocityToDmxValue: linearVelocityToDmxValue,
+          },
+          {
+            note: 28,
+            channelGroup: blueChannelGroup,
+            velocityToDmxValue: linearVelocityToDmxValue,
+          },
+          {
+            note: 29,
+            channelGroup: whiteChannelGroup,
+            velocityToDmxValue: linearVelocityToDmxValue,
+          },
+          {
+            note: 31,
+            channelGroup: ambarChannelGroup,
+            velocityToDmxValue: linearVelocityToDmxValue,
+          },
+          {
+            note: 33,
+            channelGroup: uvChannelGroup,
+            velocityToDmxValue: linearVelocityToDmxValue,
+          },
+        ],
+      })
+    );
+  }
 
   startProcessing();
 };
@@ -87,8 +112,11 @@ addDevicesChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
       console.log('Creating universes');
       universe = createUniverse(1, dmxOutputDeviceIds[0]);
       setDefaultUniverse(universe);
-      prepareUI();
     }
+  }
+
+  if (universe && midiInputId) {
+    prepareUI();
   }
 });
 

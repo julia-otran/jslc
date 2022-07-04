@@ -104,15 +104,16 @@ ipcMain.on(
 
     if (midiInputs[midiInputId] === undefined) {
       midiInputs[midiInputId] = new midi.Input();
-      midiInputs[midiInputId].openPort(midiInputId);
+
+      const input = midiInputs[midiInputId];
+
+      input.openPort(midiInputId);
+
+      input.on('message', (deltaTime, message) => {
+        console.log({ message, deltaTime });
+        event.reply('midi-input-data', { midiInputId, deltaTime, message });
+      });
     }
-
-    const input = midiInputs[midiInputId];
-
-    input.on('message', (deltaTime, message) => {
-      console.log({ message, deltaTime });
-      event.reply('midi-input-data', { midiInputId, deltaTime, message });
-    });
   }
 );
 

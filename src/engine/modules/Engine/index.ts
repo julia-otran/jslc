@@ -23,3 +23,4 @@ export * from './core';
 export * from './utils';
 export * from './functions';
 export * from './frame-generator';
+export * from './midi-synth';
