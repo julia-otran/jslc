@@ -120,11 +120,4 @@ addDevicesChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
   }
 });
 
-reloadDevices().then(({ dmxOutputDeviceIds }) => {
-  if (dmxOutputDeviceIds.length <= 0) {
-    console.log('Registering dummy device');
-    registerDmxOutputDevice(9, () => {
-      return new Promise((resolve) => setTimeout(resolve, 15));
-    });
-  }
-});
+reloadDevices();

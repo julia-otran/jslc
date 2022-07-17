@@ -36,7 +36,7 @@ registerMessageListener<EngineEnableMidiInputOutputMessage>(
   }
 );
 
-interface Devices {
+export interface Devices {
   requestId: string;
   inputs: {
     midi: Array<{
@@ -46,22 +46,50 @@ interface Devices {
   };
   outputs: {
     linuxDMX: Array<number>;
+    local?: Array<number>;
   };
 }
 
+export type DevicesFoundCallback = (devices: Devices) => void;
+let devicesFoundCallbacks: Array<DevicesFoundCallback> = [];
+let devices: Devices | undefined = undefined;
+
+export const addDevicesFoundCallback = (fn: DevicesFoundCallback): void => {
+  devicesFoundCallbacks.push(fn);
+
+  if (devices) {
+    fn(devices);
+  }
+};
+
+export const removeDevicesFoundCallback = (fn: DevicesFoundCallback): void => {
+  devicesFoundCallbacks = devicesFoundCallbacks.filter((f) => f !== fn);
+};
+
 window.electron.ipcRenderer.on('devices-found', (...args: unknown[]): void => {
-  const devices = args[0] as Devices;
+  devices = args[0] as Devices;
+  const localDevices = devices as Devices;
 
-  console.log(devices);
+  localDevices.outputs.local = [9];
 
-  const { requestId } = devices;
+  console.log(localDevices);
 
-  const linuxDmxOutputDevices = devices.outputs.linuxDMX;
-  const midiInputDevices = devices.inputs.midi;
+  devicesFoundCallbacks.forEach((cb) => cb(localDevices));
+
+  const { requestId } = localDevices;
+
+  const linuxDmxOutputDevices = localDevices.outputs.linuxDMX;
+  const localDmxOutputDevices = localDevices.outputs.local;
+  const midiInputDevices = localDevices.inputs.midi;
 
   sendMessage<EngineDevicesInputMessage>({
     message: EngineInputMessageNames.DEVICES_FOUND,
-    data: { linuxDmxOutputDevices, midiInputDevices, requestId },
+    data: {
+      localDmxOutputDevices,
+      linuxDmxOutputDevices,
+      midiInputDevices,
+      requestId,
+    },
   });
 });
 
@@ -82,13 +110,38 @@ window.electron.ipcRenderer.on('dmx-data-done', (...args) => {
   });
 });
 
+export type ValuesCallback = (
+  dmxOutputDevice: number,
+  data: Uint8Array
+) => void;
+let valuesCallbacks: Array<ValuesCallback> = [];
+
+export const addValuesCallback = (cb: ValuesCallback): void => {
+  valuesCallbacks.push(cb);
+};
+
+export const removeValuesCallback = (cb: ValuesCallback): void => {
+  valuesCallbacks = valuesCallbacks.filter((c) => c !== cb);
+};
+
 registerMessageListener<EngineWriteToDeviceOutputMessage>(
   EngineOutputMessageNames.WRITE_TO_DEVICE,
   (data) => {
-    window.electron.ipcRenderer.writeDMX(
-      data.requestId,
-      data.dmxOutputDevice,
-      data.dmxData
-    );
+    if (data.dmxOutputDevice === 9) {
+      setTimeout(() => {
+        sendMessage<EngineWriteToDeviceDoneInputMessage>({
+          message: EngineInputMessageNames.WRITE_TO_DEVICE_DONE,
+          data: { requestId: data.requestId, success: true },
+        });
+      }, 20);
+    } else {
+      window.electron.ipcRenderer.writeDMX(
+        data.requestId,
+        data.dmxOutputDevice,
+        data.dmxData
+      );
+    }
+
+    valuesCallbacks.forEach((cb) => cb(data.dmxOutputDevice, data.dmxData));
   }
 );

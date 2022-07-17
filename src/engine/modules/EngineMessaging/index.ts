@@ -58,6 +58,7 @@ export type EngineEnableMidiInputOutputMessage = EngineOutputMessage<
 
 export interface EngineDevicesInputMessageData {
   linuxDmxOutputDevices: number[];
+  localDmxOutputDevices: number[];
   midiInputDevices: Array<{
     id: number;
     name: string;

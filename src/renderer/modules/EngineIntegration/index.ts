@@ -1,4 +1,5 @@
-import './devices';
+export * from './bridge';
+export * from './devices';
 
 import { EngineOutputMessage } from '../../../engine';
 import { handleMessage, setMessageForwarder } from './messaging';

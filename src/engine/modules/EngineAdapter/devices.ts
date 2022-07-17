@@ -60,10 +60,16 @@ registerMessageListener<EngineMidiInputDataInputMessage>(
 registerMessageListener<EngineDevicesInputMessage>(
   EngineInputMessageNames.DEVICES_FOUND,
   (data) => {
-    const { linuxDmxOutputDevices, midiInputDevices, requestId } = data;
+    const {
+      localDmxOutputDevices,
+      linuxDmxOutputDevices,
+      midiInputDevices,
+      requestId,
+    } = data;
     console.log('Engine received devices: ', data);
 
     // Outputs
+    // Linux DMX
     linuxDmxOutputDevices
       .filter(
         (d) => getDmxOutputDeviceIds().find((id) => id === d) === undefined
@@ -85,6 +91,35 @@ registerMessageListener<EngineDevicesInputMessage>(
       .filter(
         (devId) =>
           registeredDmxOutputDevices.find((d) => d === devId) !== undefined
+      )
+      .forEach((deviceId) => {
+        unregisterDmxOutputDevice(deviceId);
+        registeredDmxOutputDevices = registeredDmxOutputDevices.filter(
+          (d) => d !== deviceId
+        );
+      });
+
+    // Local outputs
+    localDmxOutputDevices
+      .filter(
+        (d) => getDmxOutputDeviceIds().find((id) => id === d) === undefined
+      )
+      .forEach((deviceId: number) => {
+        if (isDmxOutputDeviceId(deviceId)) {
+          registerDmxOutputDevice(deviceId, (dmxData) => {
+            return writeToDevice(deviceId, dmxData);
+          });
+
+          registeredDmxOutputDevices.push(deviceId);
+        }
+      });
+
+    getDmxOutputDeviceIds()
+      .filter(
+        (devId) => localDmxOutputDevices.find((d) => d === devId) === undefined
+      )
+      .filter(
+        (devId) => localDmxOutputDevices.find((d) => d === devId) !== undefined
       )
       .forEach((deviceId) => {
         unregisterDmxOutputDevice(deviceId);
