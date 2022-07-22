@@ -24,3 +24,4 @@ export * from './utils';
 export * from './functions';
 export * from './frame-generator';
 export * from './midi-synth';
+export * from './local-conn';

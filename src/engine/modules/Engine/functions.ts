@@ -7,9 +7,10 @@ import {
   waitNextFrame,
   isStopped,
 } from './frame-generator';
+import { ValueProvider } from './core-types';
 
 export interface TimedTransitionParams {
-  startValue?(): number;
+  startValue?: ValueProvider;
   endValue?: number;
   durationMs: number;
   initialTime?: number;
@@ -173,14 +174,14 @@ export interface KeepValueParams {
   targetValue: ChannelValue;
   durationMs?: number | undefined;
   mixMode?: MixMode;
-  weight?: number | undefined;
+  weightProvider?: ValueProvider;
 }
 
 export const keepValue = function* ({
   channelGroup,
   targetValue,
   mixMode = MixMode.GREATER_PRIORITY,
-  weight,
+  weightProvider,
   durationMs,
 }: KeepValueParams): ProcessSaga {
   const startAt = new Date().getTime();
@@ -193,6 +194,8 @@ export const keepValue = function* ({
   }
 
   while (true) {
+    const weight = weightProvider?.() ?? undefined;
+
     yield pushValues(
       channelGroup.getChannelsMixWithValue({ ...targetValue, mixMode, weight })
     );

@@ -1,6 +1,7 @@
 import {
   DmxOutputDeviceId as SrcDmxOutputDeviceId,
   DMXData as SrcDMXData,
+  LocalConnMessage,
   isDmxOutputDeviceId,
 } from '../Engine';
 
@@ -13,12 +14,15 @@ export enum EngineOutputMessageNames {
   REQUEST_DEVICES = 'request-devices',
   WRITE_TO_DEVICE = 'write-to-device',
   ENABLE_MIDI_INPUT = 'enable-midi-input',
+  LOCAL_CONN = 'local-conn',
 }
 
 export enum EngineInputMessageNames {
   DEVICES_FOUND = 'devices-found',
   WRITE_TO_DEVICE_DONE = 'write-to-device-done',
   MIDI_INPUT_DATA = 'midi-input-data',
+  LOCAL_CONN = 'local-conn',
+  LOCAL_CONN_REQUEST_VALUE = 'local-conn-request-value',
 }
 
 export interface EngineOutputMessage<
@@ -36,6 +40,13 @@ export interface EngineInputMessage<
   message: TMessage;
   data: TData;
 }
+
+export type EngineLocalConnOutputMessageData = LocalConnMessage;
+
+export type EngineLocalConnOutputMessage = EngineOutputMessage<
+  EngineOutputMessageNames.LOCAL_CONN,
+  EngineLocalConnOutputMessageData
+>;
 
 export interface EngineRequestDevicesOutputMessageData {
   requestId: string;
@@ -65,6 +76,22 @@ export interface EngineDevicesInputMessageData {
   }>;
   requestId: string;
 }
+
+export type EngineLocalConnInputMessageData = LocalConnMessage;
+
+export type EngineLocalConnInputMessage = EngineInputMessage<
+  EngineInputMessageNames.LOCAL_CONN,
+  EngineLocalConnInputMessageData
+>;
+
+export interface EngineLocalConnRequestValueInputMessageData {
+  connectorKey: string;
+}
+
+export type EngineLocalConnRequestValueInputMessage = EngineInputMessage<
+  EngineInputMessageNames.LOCAL_CONN_REQUEST_VALUE,
+  EngineLocalConnRequestValueInputMessageData
+>;
 
 export type EngineDevicesInputMessage = EngineInputMessage<
   EngineInputMessageNames.DEVICES_FOUND,

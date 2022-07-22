@@ -46,3 +46,5 @@ export interface FrameControls<TReturn> {
   setReturn(data: TReturn): void;
   readFromInputDevice<TData>(inputDeviceId: InputDeviceId): TData | undefined;
 }
+
+export type ValueProvider = () => number;
