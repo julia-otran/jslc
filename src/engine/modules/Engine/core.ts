@@ -209,11 +209,11 @@ const sortByPriority = (index: number): SortByPriority =>
 
 const valueWeightCalc = (
   current: number,
-  previous: number,
+  previous: number | undefined,
   currentWeight: number | undefined
 ): number => {
   const weight = currentWeight === undefined ? 1 : currentWeight;
-  return current * weight + previous * (1 - weight);
+  return current * weight + (previous || 0) * (1 - weight);
 };
 
 const channelValueOp = (
@@ -224,9 +224,11 @@ const channelValueOp = (
   const currentVal = channelValueToValue(current);
   const previousVal = channelValueToValue(previous);
   const currentWeight = current.weight;
+  const opResult =
+    previousVal !== undefined ? op(currentVal, previousVal) : currentVal;
 
   return valueToChannelValue(
-    valueWeightCalc(op(currentVal, previousVal), previousVal, currentWeight)
+    valueWeightCalc(opResult, previousVal, currentWeight)
   );
 };
 
@@ -243,6 +245,10 @@ const mixChannelValues = <
 
   const currentValue = channelValueToValue(current);
   const currentWeight = current.weight === undefined ? 1 : current.weight;
+
+  if (current.mixMode === MixMode.CLEAR) {
+    return undefined;
+  }
 
   if (current.mixMode === MixMode.GREATER_PRIORITY) {
     const value = valueWeightCalc(
@@ -271,6 +277,10 @@ const mixChannelValues = <
   }
 
   if (current.mixMode === MixMode.AVERAGE) {
+    if (!previous) {
+      return current;
+    }
+
     const prevWeight = previous?.weight === undefined ? 1 : previous.weight;
 
     const prevVal = channelValueToValue(previous) * prevWeight;
@@ -421,7 +431,9 @@ const reduceFunctions = (
 const sanitizeValue = (data: number | undefined): DMXValue =>
   Math.max(0, Math.min(255, Math.round(data || 0)));
 
-const processUniverses = (): Promise<void> => {
+type DmxResults = Array<{ universe: Universe; data: Uint8Array }>;
+
+const processUniverses = (): DmxResults => {
   garbageCollectOutputFunctions();
 
   const functions = sortByPriority(0)(
@@ -430,7 +442,7 @@ const processUniverses = (): Promise<void> => {
 
   const channelMap: ChannelMap = reduce(reduceFunctions, [], functions);
 
-  const pendingWrites: Promise<void>[] = [];
+  const results: DmxResults = [];
 
   processingUniverses.forEach((universe) => {
     const dataNumber: number[] = [];
@@ -454,10 +466,41 @@ const processUniverses = (): Promise<void> => {
 
     const data: DMXData = new Uint8Array(dataNumber);
 
-    pendingWrites.push(writeToUniverse(universe, data));
+    results.push({ universe, data });
   });
 
-  return Promise.allSettled(pendingWrites).then(() => {});
+  return results;
+};
+
+let isWriting: boolean = false;
+let writeFrames: number = 0;
+let lastWriteRunDate: Date = new Date();
+
+const writeDmxResults = async (results: DmxResults): Promise<void> => {
+  if (isWriting) {
+    await sleep(10);
+    return;
+  }
+
+  isWriting = true;
+  writeFrames += 1;
+
+  if (writeFrames > 100) {
+    const current = new Date();
+    const deltaSecs = (current.getTime() - lastWriteRunDate.getTime()) / 1000;
+    const fps = writeFrames / deltaSecs;
+
+    console.log('DMX Write FPS: ', Math.round(fps * 10) / 10);
+
+    writeFrames = 0;
+    lastWriteRunDate = current;
+  }
+
+  Promise.allSettled(
+    results.map((r) => writeToUniverse(r.universe, r.data))
+  ).then(() => {
+    isWriting = false;
+  });
 };
 
 let process = false;
@@ -478,18 +521,18 @@ export const startProcessing = async () => {
       }
 
       consumeInputDevices();
-
-      await processUniverses();
+      const results = processUniverses();
+      await writeDmxResults(results);
 
       errorCount = 0;
       frames += 1;
 
-      if (frames > 100) {
+      if (frames > 1000) {
         const current = new Date();
         const deltaSecs = (current.getTime() - lastRunDate.getTime()) / 1000;
         const fps = frames / deltaSecs;
 
-        console.log('DMX FPS: ', Math.round(fps * 10) / 10);
+        console.log('DMX Processing FPS: ', Math.round(fps * 10) / 10);
 
         frames = 0;
         lastRunDate = current;

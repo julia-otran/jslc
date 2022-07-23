@@ -12,6 +12,7 @@ export interface GroupOutput {
 }
 
 export enum MixMode {
+  CLEAR,
   GREATER_PRIORITY,
   MIN,
   MAX,

@@ -6,13 +6,15 @@ import {
   pushValues,
   waitNextFrame,
   isStopped,
+  fork,
+  cancel,
 } from './frame-generator';
-import { ValueProvider } from './core-types';
+import { ValueProvider, Task } from './core-types';
 
 export interface TimedTransitionParams {
   startValue?: ValueProvider;
-  endValue?: number;
-  durationMs: number;
+  endValue?: ValueProvider;
+  durationMs: ValueProvider;
   initialTime?: number;
 }
 
@@ -22,7 +24,7 @@ export interface TimedTransitionInputParams {
 
 export const timedTransition = function* ({
   startValue = () => 0,
-  endValue = 1,
+  endValue = () => 1,
   durationMs,
   initialTime,
 }: TimedTransitionParams): Generator<
@@ -35,12 +37,11 @@ export const timedTransition = function* ({
   output = yield startValue();
 
   let elapsedTime: number = 0;
-  let remainingTime = durationMs;
   let prevTime = initialTime || new Date().getTime();
 
   do {
-    const deltaVal = endValue - startValue();
-    const step = deltaVal / durationMs;
+    const deltaVal = endValue() - startValue();
+    const step = deltaVal / durationMs();
 
     let currentTime = new Date().getTime();
 
@@ -49,65 +50,53 @@ export const timedTransition = function* ({
     }
 
     elapsedTime += currentTime - prevTime;
-    remainingTime -= currentTime - prevTime;
 
     prevTime = currentTime;
 
-    if (elapsedTime >= durationMs) {
-      output = yield endValue;
+    if (elapsedTime >= durationMs()) {
+      output = yield endValue();
       break;
     }
 
     if (step >= 0) {
       output = yield step * elapsedTime;
     } else {
-      output = yield Math.abs(step) * remainingTime;
+      output = yield Math.abs(step) * (durationMs() - elapsedTime);
     }
-  } while (elapsedTime < durationMs);
+  } while (elapsedTime < durationMs());
 
-  return endValue;
+  return endValue();
 };
 
 export interface FadeParams {
-  channelGroup: ChannelGroup;
-  durationMs: number;
-  targetValue: ChannelValue;
-  mixMode?: MixMode;
+  weightCb(w: number): void;
+  durationMs: ValueProvider;
   gracefulInStop?: boolean;
   startWeight?: number;
+  initialTime?: number;
 }
 
 export const fadeOut = function* ({
-  channelGroup,
+  weightCb,
   durationMs,
-  targetValue,
-  mixMode = MixMode.GREATER_PRIORITY,
   startWeight = 1,
+  initialTime,
 }: FadeParams): ProcessSaga {
   const decresingValue = timedTransition({
     startValue: () => startWeight,
-    endValue: 0,
+    endValue: () => 0,
     durationMs,
+    initialTime,
   });
 
   while (true) {
-    let weight: number = 0;
-
     const paused = yield isPaused();
 
     const decresingValueResult = decresingValue.next({
       isPaused: paused,
     });
 
-    weight = decresingValueResult.value;
-
-    yield pushValues(
-      channelGroup.getChannelsMixWithValue({
-        ...targetValue,
-        mixMode,
-        weight,
-      })
-    );
+    weightCb(decresingValueResult.value);
 
     yield waitNextFrame();
 
@@ -118,20 +107,19 @@ export const fadeOut = function* ({
 };
 
 export const fadeIn = function* ({
-  channelGroup,
+  weightCb,
   durationMs,
-  targetValue,
-  mixMode = MixMode.GREATER_PRIORITY,
   gracefulInStop = true,
   startWeight = 0,
+  initialTime,
 }: FadeParams): ProcessSaga {
   let weight = 0;
   let stoppedVal = yield isStopped();
 
-  const initialTime = new Date().getTime();
+  const initialTimeVal = initialTime || new Date().getTime();
   const incresingValue = timedTransition({
     durationMs,
-    initialTime,
+    initialTime: initialTimeVal,
     startValue: () => startWeight,
   });
 
@@ -144,9 +132,7 @@ export const fadeIn = function* ({
 
     weight = incresingValueResult.value;
 
-    yield pushValues(
-      channelGroup.getChannelsMixWithValue({ ...targetValue, mixMode, weight })
-    );
+    weightCb(weight);
 
     yield waitNextFrame();
 
@@ -158,23 +144,50 @@ export const fadeIn = function* ({
   }
 
   if (stoppedVal && gracefulInStop) {
-    const durationMsOut = new Date().getTime() - initialTime;
+    const durationMsOut = new Date().getTime() - initialTimeVal;
     yield* fadeOut({
-      channelGroup,
-      durationMs: durationMsOut,
-      targetValue,
-      mixMode,
+      weightCb,
+      durationMs: () => durationMsOut,
       startWeight: weight,
     });
+  }
+};
+
+export interface HangParams {
+  durationMs?: ValueProvider | undefined;
+}
+
+export const hang = function* ({ durationMs }: HangParams): ProcessSaga {
+  const startAt = new Date().getTime();
+
+  const stoppedVal = yield isStopped();
+
+  if (stoppedVal) {
+    return;
+  }
+
+  while (true) {
+    const currentTime = new Date().getTime();
+
+    yield waitNextFrame();
+
+    if (yield isStopped()) {
+      break;
+    }
+
+    if (durationMs && currentTime - startAt > durationMs()) {
+      break;
+    }
   }
 };
 
 export interface KeepValueParams {
   channelGroup: ChannelGroup;
   targetValue: ChannelValue;
-  durationMs?: number | undefined;
+  durationMs?: ValueProvider | undefined;
   mixMode?: MixMode;
   weightProvider?: ValueProvider;
+  unstopable?: boolean | undefined;
 }
 
 export const keepValue = function* ({
@@ -183,13 +196,13 @@ export const keepValue = function* ({
   mixMode = MixMode.GREATER_PRIORITY,
   weightProvider,
   durationMs,
+  unstopable,
 }: KeepValueParams): ProcessSaga {
   const startAt = new Date().getTime();
 
   const stoppedVal = yield isStopped();
 
-  if (stoppedVal) {
-    console.log('Stopped');
+  if (!unstopable && stoppedVal) {
     return;
   }
 
@@ -204,23 +217,55 @@ export const keepValue = function* ({
 
     yield waitNextFrame();
 
-    if (yield isStopped()) {
+    if (!unstopable && (yield isStopped())) {
       break;
     }
 
-    if (durationMs && currentTime - startAt > durationMs) {
+    if (durationMs && currentTime - startAt > durationMs()) {
       break;
     }
   }
 };
+
+export interface FadeInWithOutByWeightParams {
+  channelGroup: ChannelGroup;
+  targetValue: ChannelValue;
+  durationMs: ValueProvider;
+  mixMode?: MixMode;
+  weightProvider?: ValueProvider;
+}
 
 export const fadeInWithOutByWeight = function* ({
   channelGroup,
   durationMs,
   targetValue,
   mixMode = MixMode.GREATER_PRIORITY,
-}: FadeParams): ProcessSaga {
-  yield* fadeIn({ channelGroup, durationMs, targetValue, mixMode });
-  yield* keepValue({ channelGroup, targetValue, mixMode });
-  yield* fadeOut({ channelGroup, targetValue, mixMode, durationMs });
+  weightProvider,
+}: FadeInWithOutByWeightParams): ProcessSaga {
+  let internalWeight = 0;
+
+  let weightCb = (w: number) => {
+    internalWeight = w;
+  };
+
+  let weightProviderInt = (): number =>
+    internalWeight * (weightProvider?.() ?? 1);
+
+  const keepValuesTask: Task = yield fork(
+    keepValue({
+      unstopable: true,
+      channelGroup,
+      targetValue,
+      mixMode,
+      weightProvider: weightProviderInt,
+    })
+  );
+
+  yield* fadeIn({ weightCb, durationMs });
+
+  yield* hang({});
+
+  yield* fadeOut({ weightCb, durationMs });
+
+  yield cancel(keepValuesTask);
 };

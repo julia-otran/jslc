@@ -5,9 +5,13 @@ import { useLocalConn } from '../../../EngineIntegration';
 
 export interface ValueFaderProps {
   connectorKey: string;
+  title?: string | undefined;
 }
 
-export const ValueFader = ({ connectorKey }: ValueFaderProps): JSX.Element => {
+export const ValueFader = ({
+  connectorKey,
+  title,
+}: ValueFaderProps): JSX.Element => {
   const [value, setValue] = useLocalConn(connectorKey);
 
   const handleChange = useCallback(
@@ -24,6 +28,18 @@ export const ValueFader = ({ connectorKey }: ValueFaderProps): JSX.Element => {
       spacing={2}
       sx={{ height: '100%', width: '45px', alignItems: 'center' }}
     >
+      <Typography
+        variant="body2"
+        sx={{
+          fontSize: '12px',
+          height: '18px',
+          whitespace: 'nowrap',
+          overflow: 'hidden',
+        }}
+      >
+        {title || ' '}
+      </Typography>
+
       <Slider
         value={value ?? 0}
         disabled={value === undefined}

@@ -19,7 +19,7 @@ const IndexRoot = (): JSX.Element => {
   return (
     <Stack spacing={2}>
       {devices.map((device) => (
-        <>
+        <Stack key={`device-${device}`}>
           <Typography mt={1}>Device: {device}</Typography>
 
           <Grid
@@ -29,16 +29,16 @@ const IndexRoot = (): JSX.Element => {
             sx={{ width: '100%' }}
           >
             {channels.map((channel) => (
-              <Grid item sx={{ width: '6.25%' }}>
-                <ValueView
-                  key={`dev-${device}-ch-${channel}`}
-                  device={device}
-                  channel={channel}
-                />
+              <Grid
+                item
+                sx={{ width: '6.25%' }}
+                key={`dev-${device}-ch-${channel}`}
+              >
+                <ValueView device={device} channel={channel} />
               </Grid>
             ))}
           </Grid>
-        </>
+        </Stack>
       ))}
     </Stack>
   );

@@ -3,9 +3,13 @@ import { ChannelValue } from './channel-group-types';
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
-export const channelValueToValue = (
+export function channelValueToValue<T extends ChannelValue | undefined>(
+  a: T
+): number | Extract<undefined, T>;
+
+export function channelValueToValue(
   channelValue: ChannelValue | undefined
-): number => {
+): number | undefined {
   if (!channelValue) {
     return 0;
   }
@@ -16,7 +20,7 @@ export const channelValueToValue = (
       : channelValue.valueLSB;
 
   return (channelValue.valueMSB << 8) | (valueLSB & 0xff);
-};
+}
 
 export const valueToChannelValue = (value: number): ChannelValue => {
   const valueLSB = value & 0xff;

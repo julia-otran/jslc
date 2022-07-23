@@ -77,9 +77,9 @@ export type CancelEffect = BaseEffect<EffectType.CANCEL, CancelEffectData>;
 const isCancelEffect = (value: any): value is CancelEffect =>
   value?.type === EffectType.CANCEL;
 
-export const cancel = (): CancelEffect => ({
+export const cancel = (task?: Task | undefined): CancelEffect => ({
   type: EffectType.CANCEL,
-  effectData: undefined,
+  effectData: task,
 });
 
 export type FreezeEffect = BaseEffect<EffectType.FREEZE, void>;
@@ -243,7 +243,7 @@ export const race = <
 >(
   raceMap: TRaceMap,
   joinMode: JoinMode = JoinMode.DONE
-) => ({
+): RaceEffect<TRaceKey, TRaceMap> => ({
   type: EffectType.RACE,
   effectData: { raceMap, joinMode },
 });
@@ -414,13 +414,13 @@ export type Nexts<
   | GeneratorReturnType<TAllMap[TAllKey]>;
 
 export type ProcessSaga<
-  TChannelToken extends string = any,
+  TChannelToken extends string = string,
   TChannelData extends {
     [key in EffectChannelToken<TChannelToken>]: any;
   } = any,
   TReadFromInputDeviceKey extends InputDeviceId = any,
   TReadFromInputDeviceReturn extends { [key in InputDeviceId]?: any } = any,
-  TRaceKeys extends string = any,
+  TRaceKeys extends string = string,
   TRaceMap extends { [key in TRaceKeys]: TInternalSaga } = any,
   TAllKeys extends string = any,
   TAllMap extends { [key in TAllKeys]: TInternalSaga } = any,
@@ -457,6 +457,8 @@ const takeQueue: Record<string, EffectChannelToken<any>> = {};
 export const processGenerator = function* <
   TChannelToken extends string,
   TChannelData extends { [key in EffectChannelToken<TChannelToken>]: any },
+  TReadFromInputDeviceKey extends number,
+  TReadFromInputDeviceReturn,
   TRaceKeys extends string,
   TRaceMap extends { [key in TRaceKeys]: TInternalSaga },
   TAllKeys extends string,
@@ -466,6 +468,8 @@ export const processGenerator = function* <
   TSaga extends ProcessSaga<
     TChannelToken,
     TChannelData,
+    TReadFromInputDeviceKey,
+    TReadFromInputDeviceReturn,
     TRaceKeys,
     TRaceMap,
     TAllKeys,
@@ -720,6 +724,8 @@ export const processGenerator = function* <
 export const addGenerator = <
   TChannelToken extends string,
   TChannelData extends { [key in EffectChannelToken<TChannelToken>]: any },
+  TReadFromInputDeviceKey extends number,
+  TReadFromInputDeviceReturn,
   TRaceKeys extends string,
   TRaceMap extends { [key in TRaceKeys]: TInternalSaga },
   TAllKeys extends string,
@@ -729,6 +735,8 @@ export const addGenerator = <
   TSaga extends ProcessSaga<
     TChannelToken,
     TChannelData,
+    TReadFromInputDeviceKey,
+    TReadFromInputDeviceReturn,
     TRaceKeys,
     TRaceMap,
     TAllKeys,
