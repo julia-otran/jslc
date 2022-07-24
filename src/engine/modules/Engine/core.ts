@@ -469,11 +469,15 @@ const processUniverses = (): DmxResults => {
 let isWriting: boolean = false;
 let writeFrames: number = 0;
 let lastWriteRunDate: Date = new Date();
+let writePromise: Promise<void> | undefined;
 
 const writeDmxResults = async (results: DmxResults): Promise<void> => {
   if (isWriting) {
-    await sleep(10);
-    return;
+    await Promise.race([sleep(10), writePromise]);
+
+    if (isWriting) {
+      return;
+    }
   }
 
   isWriting = true;
@@ -490,10 +494,11 @@ const writeDmxResults = async (results: DmxResults): Promise<void> => {
     lastWriteRunDate = current;
   }
 
-  Promise.allSettled(
+  writePromise = Promise.allSettled(
     results.map((r) => writeToUniverse(r.universe, r.data))
   ).then(() => {
     isWriting = false;
+    writePromise = undefined;
   });
 };
 
