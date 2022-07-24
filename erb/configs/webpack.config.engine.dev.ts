@@ -15,16 +15,15 @@ if (process.env.NODE_ENV === 'production') {
 const configuration: webpack.Configuration = {
   devtool: 'inline-source-map',
 
-  name: 'engine-worker',
-
   mode: 'development',
 
-  target: 'webworker',
+  target: 'node',
 
   entry: path.join(webpackPaths.srcEnginePath, 'index.ts'),
 
   output: {
-    filename: 'engine-worker.js',
+    path: webpackPaths.dllPath,
+    filename: 'engine.js',
   },
 
   plugins: [

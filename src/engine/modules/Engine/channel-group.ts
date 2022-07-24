@@ -1,13 +1,13 @@
 import { v4 as uuidV4 } from 'uuid';
 
-import { validateDMXChannel } from './devices';
 import { UniverseOrDefault, getDefaultUniverse } from './universes';
 import {
+  validateDMXChannel,
   GroupOutputDefault,
   ChannelMap,
   ChannelMixMapWithDefault,
   ChannelValueMix,
-} from './channel-group-types';
+} from '../../../engine-types';
 
 export const getOutput = (
   universe: UniverseOrDefault,

@@ -3,16 +3,16 @@ import {
   registerDmxOutputDevice,
   unregisterDmxOutputDevice,
   getDmxOutputDeviceIds,
-  DmxOutputDeviceId,
-  InputDeviceId,
-  DMXData,
-  isDmxOutputDeviceId,
   getInputDeviceIds,
   registerInputDevice,
   unregisterInputDevice,
 } from '../Engine';
 
 import {
+  DmxOutputDeviceId,
+  InputDeviceId,
+  DMXData,
+  isDmxOutputDeviceId,
   EngineDevicesInputMessage,
   EngineInputMessageNames,
   EngineMidiInputDataInputMessage,
@@ -20,7 +20,7 @@ import {
   EngineRequestDevicesOutputMessage,
   EngineWriteToDeviceDoneInputMessage,
   EngineWriteToDeviceOutputMessage,
-} from '../EngineMessaging';
+} from '../../../engine-types';
 import { registerMessageListener, sendMessage } from './messaging';
 
 type DeviceReloadCallback = ({}: {

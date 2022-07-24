@@ -6,19 +6,18 @@ import {
   startProcessing,
   addGenerator,
   ChannelGroup,
-  InputDeviceId,
   notesToChannelsMidiSynth,
   fixedVelocityToDmxValue,
   keepValue,
   getValueProvider,
-  MixMode,
   ProcessSaga,
   fork,
-  ValueProvider,
   roundRobinEffect,
 } from '../Engine';
 
 import { reloadDevices } from '../EngineAdapter';
+
+import { MixMode, InputDeviceId, ValueProvider } from '../../../engine-types';
 
 let midiInputId: InputDeviceId | undefined = undefined;
 
@@ -398,7 +397,6 @@ const prepareUI = () => {
   );
 
   if (midiInputId) {
-    console.log('generator added');
     addGenerator(
       notesToChannelsMidiSynth({
         inputDeviceId: midiInputId,

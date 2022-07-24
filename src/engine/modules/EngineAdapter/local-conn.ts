@@ -1,16 +1,16 @@
 import {
   receiveLocalConnMessage,
   registerLocalConnSender,
-  LocalConnMessage,
   getValueProvider,
 } from '../Engine';
 import {
+  LocalConnMessage,
   EngineLocalConnInputMessage,
   EngineLocalConnRequestValueInputMessage,
   EngineLocalConnOutputMessage,
   EngineInputMessageNames,
   EngineOutputMessageNames,
-} from '../EngineMessaging';
+} from '../../../engine-types';
 
 import { registerMessageListener, sendMessage } from './messaging';
 

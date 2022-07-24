@@ -11,8 +11,6 @@ import baseConfig from './webpack.config.base';
 import webpackPaths from './webpack.paths';
 import checkNodeEnv from '../scripts/check-node-env';
 
-import engineConfig from './webpack.config.engine.dev';
-
 // When an ESLint server is running, we can't set the NODE_ENV so we'll check if it's
 // at the dev webpack config is not accidentally run in a production environment
 if (process.env.NODE_ENV === 'production') {
@@ -43,8 +41,6 @@ if (
 
 const configuration: webpack.Configuration = {
   name: 'renderer',
-
-  dependencies: [engineConfig.name!],
 
   devtool: 'inline-source-map',
 
@@ -177,6 +173,14 @@ const configuration: webpack.Configuration = {
         .on('close', (code: number) => process.exit(code!))
         .on('error', (spawnError) => console.error(spawnError));
 
+      console.log('Starting engine.js builder...');
+      const engineProcess = spawn('npm', ['run', 'start:engine'], {
+        shell: true,
+        stdio: 'inherit',
+      })
+        .on('close', (code: number) => process.exit(code!))
+        .on('error', (spawnError) => console.error(spawnError));
+
       console.log('Starting Main Process...');
       spawn('npm', ['run', 'start:main'], {
         shell: true,
@@ -184,6 +188,7 @@ const configuration: webpack.Configuration = {
       })
         .on('close', (code: number) => {
           preloadProcess.kill();
+          engineProcess.kill();
           process.exit(code!);
         })
         .on('error', (spawnError) => console.error(spawnError));
@@ -192,4 +197,4 @@ const configuration: webpack.Configuration = {
   },
 };
 
-export default [merge(baseConfig, configuration), engineConfig];
+export default merge(baseConfig, configuration);

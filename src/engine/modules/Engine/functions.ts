@@ -1,4 +1,9 @@
-import { ChannelValue, MixMode } from './channel-group-types';
+import {
+  ValueProvider,
+  Task,
+  ChannelValue,
+  MixMode,
+} from '../../../engine-types';
 import { ChannelGroup } from './channel-group';
 import {
   ProcessSaga,
@@ -9,7 +14,6 @@ import {
   fork,
   cancel,
 } from './frame-generator';
-import { ValueProvider, Task } from './core-types';
 
 export interface TimedTransitionParams {
   startValue?: ValueProvider;

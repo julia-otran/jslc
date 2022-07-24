@@ -1,9 +1,14 @@
 import { v4 as uuidV4 } from 'uuid';
 import { all as allR, any } from 'ramda';
 
-import { InputDeviceId } from './devices';
-import { ChannelMixMap, ChannelMixMapWithDefault } from './channel-group-types';
-import { Process, Task, ProcessCallbackParams } from './core-types';
+import {
+  Process,
+  Task,
+  ProcessCallbackParams,
+  ChannelMixMap,
+  ChannelMixMapWithDefault,
+  InputDeviceId,
+} from '../../../engine-types';
 import { addRootProcess } from './core';
 
 export enum EffectType {

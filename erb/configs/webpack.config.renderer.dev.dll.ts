@@ -29,7 +29,7 @@ const configuration: webpack.Configuration = {
   /**
    * Use `module` from `webpack.config.renderer.dev.js`
    */
-  module: rendererModules[0].module,
+  module: rendererModules.module,
 
   entry: {
     renderer: Object.keys(dependencies || {}),

@@ -1,15 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import {
-  EngineOutputMessageNames,
   EngineInputMessageNames,
-  EngineLocalConnRequestValueInputMessage,
-  EngineLocalConnInputMessage,
   EngineLocalConnInputMessageData,
-  EngineLocalConnOutputMessage,
-} from '../../../engine';
-
-import { registerMessageListener, sendMessage } from './messaging';
+  EngineLocalConnOutputMessageData,
+} from '../../../engine-types';
 
 type LocalConnListenerFn = (value: number) => void;
 
@@ -37,27 +32,21 @@ const removeLocalConnListener = (
   }
 };
 
-registerMessageListener<EngineLocalConnOutputMessage>(
-  EngineOutputMessageNames.LOCAL_CONN,
-  (message) => {
-    const connectorListeners = localConnListeners[message.connectorKey] ?? [];
-    connectorListeners.forEach((l) => l(message.value));
-  }
-);
-
 const sendLocalConn = (data: EngineLocalConnInputMessageData): void => {
-  sendMessage<EngineLocalConnInputMessage>({
+  window.electron.ipcRenderer.localConn({
     message: EngineInputMessageNames.LOCAL_CONN,
     data,
   });
 };
 
 const requestLocalConnValue = (connectorKey: string): void => {
-  sendMessage<EngineLocalConnRequestValueInputMessage>({
-    message: EngineInputMessageNames.LOCAL_CONN_REQUEST_VALUE,
-    data: { connectorKey },
-  });
+  window.electron.ipcRenderer.requestLocalConnValue(connectorKey);
 };
+
+window.electron.ipcRenderer.on('local-conn', (...args) => {
+  const message = args[0] as EngineLocalConnOutputMessageData;
+  localConnListeners[message.connectorKey]?.forEach((l) => l(message.value));
+});
 
 export type UseLocalConn = [number | undefined, (value: number) => void];
 

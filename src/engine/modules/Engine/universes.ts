@@ -1,4 +1,5 @@
-import { DmxOutputDeviceId, DMXData, writeToDmxDevice } from './devices';
+import { DmxOutputDeviceId, DMXData } from '../../../engine-types';
+import { writeToDmxDevice } from './devices';
 
 export interface Universe {
   id: number;

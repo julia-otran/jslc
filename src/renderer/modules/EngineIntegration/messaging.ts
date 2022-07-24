@@ -2,7 +2,7 @@ import {
   EngineOutputMessageNames,
   EngineInputMessage,
   EngineOutputMessage,
-} from '../../../engine';
+} from '../../../engine-types';
 
 export type MessageListener<TData> = (data: TData) => void;
 export type MessageForwarder = (message: EngineInputMessage) => void;

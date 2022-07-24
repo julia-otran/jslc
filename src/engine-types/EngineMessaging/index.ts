@@ -1,14 +1,4 @@
-import {
-  DmxOutputDeviceId as SrcDmxOutputDeviceId,
-  DMXData as SrcDMXData,
-  LocalConnMessage,
-  isDmxOutputDeviceId,
-} from '../Engine';
-
-export type DmxOutputDeviceId = SrcDmxOutputDeviceId;
-export type DMXData = SrcDMXData;
-
-export { isDmxOutputDeviceId };
+import { DmxOutputDeviceId, DMXData, LocalConnMessage } from '../Engine';
 
 export enum EngineOutputMessageNames {
   REQUEST_DEVICES = 'request-devices',

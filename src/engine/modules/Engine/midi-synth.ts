@@ -1,5 +1,4 @@
-import { InputDeviceId } from './devices';
-import { MixMode } from './channel-group-types';
+import { MixMode, InputDeviceId } from '../../../engine-types';
 import { ChannelGroup } from './channel-group';
 
 import {

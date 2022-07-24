@@ -1,5 +1,5 @@
 import { ProcessSaga, isStopped, fork, cancel } from './frame-generator';
-import { ValueProvider, Task } from './core-types';
+import { ValueProvider, Task } from '../../../engine-types';
 import { fadeIn, fadeOut, hang } from './functions';
 
 export type RoundRobinEffectScene = (

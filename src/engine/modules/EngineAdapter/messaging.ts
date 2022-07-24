@@ -1,8 +1,10 @@
+import { parentPort } from 'node:worker_threads';
+
 import {
   EngineInputMessage,
   EngineOutputMessage,
   EngineInputMessageNames,
-} from '../EngineMessaging';
+} from '../../../engine-types';
 
 export type MessageListener<TData = any> = (data: TData) => void;
 
@@ -25,15 +27,12 @@ export const unregisterMessageListener = (
   delete messageListeners[message];
 };
 
-self.addEventListener(
-  'message',
-  (event: MessageEvent<EngineInputMessage>): void => {
-    messageListeners[event.data.message]?.(event.data.data);
-  }
-);
+parentPort?.on('message', (message: EngineInputMessage) => {
+  messageListeners[message.message]?.(message.data);
+});
 
 export const sendMessage = <TMessage extends EngineOutputMessage>(
   message: TMessage
 ): void => {
-  postMessage(message);
+  parentPort?.postMessage(message);
 };

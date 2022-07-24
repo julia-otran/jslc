@@ -1,9 +1,12 @@
-import { Channels } from 'main/preload';
+import { Channels } from '../main/preload';
+import { EngineLocalConnInputMessage } from '../engine-types';
 
 declare global {
   interface Window {
     electron: {
       ipcRenderer: {
+        requestLocalConnValue(connectorKey: string): void;
+        localConn(data: EngineLocalConnInputMessage): void;
         requestDevices(requestId: string): void;
         writeDMX(requestId: string, devId: number, data: Uint8Array): void;
         enableMidiInput(requestId: string, midiInputId: number): void;

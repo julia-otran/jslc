@@ -1,4 +1,4 @@
-import { ChannelValue } from './channel-group-types';
+import { ChannelValue } from '../../../engine-types';
 
 export const sleep = (ms: number) =>
   new Promise((resolve) => setTimeout(resolve, ms));

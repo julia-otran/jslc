@@ -14,8 +14,6 @@ const IndexRoot = (): JSX.Element => {
     []
   );
 
-  console.log('Render index root', devices);
-
   return (
     <Stack spacing={2}>
       {devices.map((device) => (

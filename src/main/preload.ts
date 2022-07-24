@@ -1,23 +1,18 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { EngineLocalConnInputMessage } from '../engine-types';
 
-export type Channels = 'dmx-data-done' | 'devices-found' | 'midi-input-data';
+export type Channels = 'dmx-data-done' | 'devices-found' | 'local-conn';
 
 contextBridge.exposeInMainWorld('electron', {
   ipcRenderer: {
+    requestLocalConnValue(connectorKey: string) {
+      ipcRenderer.send('request-local-conn-value', connectorKey);
+    },
+    localConn(data: EngineLocalConnInputMessage) {
+      ipcRenderer.send('local-conn', data);
+    },
     requestDevices(requestId: string) {
-      ipcRenderer.send('load-devices', requestId);
-    },
-    enableMidiInput(requestId: string, midiInputId: number) {
-      ipcRenderer.send('enable-midi-input', requestId, midiInputId);
-    },
-    writeDMX(requestId: string, devId: number, data: Uint8Array) {
-      if (data.length !== 512) {
-        console.error(
-          'Write DMX called with invalid data size. It will be ignored.'
-        );
-      } else {
-        ipcRenderer.send('dmx-data', requestId, devId, data);
-      }
+      ipcRenderer.send('request-devices', requestId);
     },
     on(channel: Channels, func: (...args: unknown[]) => void) {
       const subscription = (_event: IpcRendererEvent, ...args: unknown[]) => {

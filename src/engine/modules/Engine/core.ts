@@ -1,14 +1,7 @@
 import { groupBy, pipe, sort, flatten, reduce, map } from 'ramda';
 import { v4 as uuidV4 } from 'uuid';
 
-import {
-  DMXData,
-  DMXValue,
-  dmxChannels,
-  readFromInputDevice,
-  getInputDeviceIds,
-  InputDeviceId,
-} from './devices';
+import { dmxChannels, readFromInputDevice, getInputDeviceIds } from './devices';
 import {
   addUniverseCreatedCallback,
   Universe,
@@ -17,6 +10,9 @@ import {
   getDefaultUniverse,
 } from './universes';
 import {
+  DMXData,
+  DMXValue,
+  InputDeviceId,
   ChannelMap,
   ChannelMixMapWithDefault,
   MixMode,
@@ -28,15 +24,13 @@ import {
   ChannelMixMap,
   ChannelMixedMap,
   ChannelOutput,
-} from './channel-group-types';
-import {
   Token,
   Process,
   ProcessStatus,
   ProcessPriority,
   ProcessCallbackParams,
   Task,
-} from './core-types';
+} from '../../../engine-types';
 import { sleep, channelValueToValue, valueToChannelValue } from './utils';
 import { getChannelMSB, getChannelLSB } from './channel-lsb';
 

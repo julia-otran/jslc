@@ -1,9 +1,4 @@
-import { ValueProvider } from './core-types';
-
-export interface LocalConnMessage {
-  connectorKey: string;
-  value: number;
-}
+import { ValueProvider, LocalConnMessage } from '../../../engine-types';
 
 export type LocalConnCallback = (message: LocalConnMessage) => void;
 
