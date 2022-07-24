@@ -3,6 +3,7 @@ import { app, ipcMain } from 'electron';
 import { open, readdir, FileHandle } from 'fs/promises';
 import path from 'path';
 import { Worker } from 'node:worker_threads';
+import fs from 'fs';
 
 import {
   EngineOutputMessageNames,
@@ -273,18 +274,43 @@ const workerFile = app.isPackaged
   ? path.join(__dirname, 'engine.js')
   : path.join(__dirname, '../../erb/dll/engine.js');
 
-const worker = new Worker(workerFile);
+let worker: Worker | undefined = undefined;
+
+const loadWorker = () => {
+  console.log('Loading worker....');
+
+  worker = new Worker(workerFile);
+
+  worker.on('message', (message) => {
+    handleMessage(message);
+  });
+
+  worker.on('error', (...args) => {
+    console.log('Worker errored', ...args);
+  });
+};
+
+if (!app.isPackaged) {
+  fs.watchFile(workerFile, () => {
+    console.log('Worker file update detected');
+    const currentWorker = worker;
+
+    if (currentWorker) {
+      worker = undefined;
+      currentWorker
+        .terminate()
+        .catch((e) => ({ e }))
+        .then(loadWorker);
+    } else {
+      loadWorker();
+    }
+  });
+}
+
+loadWorker();
 
 const sendMessage = <TMessage extends EngineInputMessage>(
   message: TMessage
 ): void => {
-  worker.postMessage(message);
+  worker?.postMessage(message);
 };
-
-worker.on('message', (message) => {
-  handleMessage(message);
-});
-
-worker.on('error', (...args) => {
-  console.log('Worker errored', ...args);
-});
