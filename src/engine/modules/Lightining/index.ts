@@ -3,51 +3,70 @@ import {
   createUniverse,
   Universe,
   setDefaultUniverse,
-  startProcessing,
   addGenerator,
   ChannelGroup,
   notesToChannelsMidiSynth,
   fixedVelocityToDmxValue,
   keepValue,
   getValueProvider,
+  getRawValueProvider,
   ProcessSaga,
   fork,
   roundRobinEffect,
 } from '../Engine';
 
-import { reloadDevices } from '../EngineAdapter';
+import { reloadDevices, startEngine } from '../EngineAdapter';
 
 import { MixMode, InputDeviceId, ValueProvider } from '../../../engine-types';
 
-let midiInputId: InputDeviceId | undefined = undefined;
+let midiInputId: InputDeviceId | undefined;
+
+const getScanCh = (scanNumber: number): number => (scanNumber - 1) * 16 + 1;
+
+const PAR_LED_UV = [209, 219];
+const PAR_LED_RGB_SMALL = [
+  getScanCh(1),
+  getScanCh(2),
+  getScanCh(5),
+  getScanCh(6),
+  getScanCh(7),
+  getScanCh(8),
+  getScanCh(9),
+  getScanCh(10),
+];
+const PAR_LED_RGB = [getScanCh(3), getScanCh(4)];
 
 let universe: Universe;
-let dimmerChannelGroup = new ChannelGroup();
-let redChannelGroup = new ChannelGroup();
-let greenChannelGroup = new ChannelGroup();
-let blueChannelGroup = new ChannelGroup();
-let whiteChannelGroup = new ChannelGroup();
-let ambarChannelGroup = new ChannelGroup();
-let uvChannelGroup = new ChannelGroup();
-let strobeChannelGroup = new ChannelGroup();
-let velocityChannelGroup = new ChannelGroup();
+const dimmerChannelGroup = new ChannelGroup();
+const redChannelGroup = new ChannelGroup();
+const greenChannelGroup = new ChannelGroup();
+const blueChannelGroup = new ChannelGroup();
+const whiteChannelGroup = new ChannelGroup();
+const ambarChannelGroup = new ChannelGroup();
+const uvChannelGroup = new ChannelGroup();
+const strobeChannelGroup = new ChannelGroup();
+const velocityChannelGroup = new ChannelGroup();
 
-let laser1 = new ChannelGroup();
-let laser2 = new ChannelGroup();
-let laser3 = new ChannelGroup();
-let laser4 = new ChannelGroup();
-let laser5 = new ChannelGroup();
-let laser6 = new ChannelGroup();
-let laser7 = new ChannelGroup();
-let laser8 = new ChannelGroup();
-let laser9 = new ChannelGroup();
-let laser10 = new ChannelGroup();
-let laser11 = new ChannelGroup();
-let laser12 = new ChannelGroup();
-let laser13 = new ChannelGroup();
-let laser14 = new ChannelGroup();
-let laser15 = new ChannelGroup();
-let laser16 = new ChannelGroup();
+const laser1 = new ChannelGroup();
+const laser2 = new ChannelGroup();
+const laser3 = new ChannelGroup();
+const laser4 = new ChannelGroup();
+const laser5 = new ChannelGroup();
+const laser6 = new ChannelGroup();
+const laser7 = new ChannelGroup();
+const laser8 = new ChannelGroup();
+const laser9 = new ChannelGroup();
+const laser10 = new ChannelGroup();
+const laser11 = new ChannelGroup();
+const laser12 = new ChannelGroup();
+const laser13 = new ChannelGroup();
+const laser14 = new ChannelGroup();
+const laser15 = new ChannelGroup();
+const laser16 = new ChannelGroup();
+
+const power1 = new ChannelGroup();
+const power2 = new ChannelGroup();
+const power3 = new ChannelGroup();
 
 enum Color {
   RED,
@@ -143,54 +162,79 @@ const colored = (): ProcessSaga =>
       (w) => colorOnly(Color.PINK, w),
     ],
     weightProvider: getValueProvider('par-led-colored-weight', 0, 1),
-    fadeTimeProvider: () => 0,
-    pauseTimeProvider: () => 1000,
+    fadeTimeProvider: getRawValueProvider('par-led-colored-fade'),
+    pauseTimeProvider: getRawValueProvider('par-led-colored-velocity'),
   });
 
-const prepareUI = () => {
-  laser1.addChannel({ universe, start: 21, offset: 0 });
-  laser2.addChannel({ universe, start: 21, offset: 1 });
-  laser3.addChannel({ universe, start: 21, offset: 2 });
-  laser4.addChannel({ universe, start: 21, offset: 3 });
-  laser5.addChannel({ universe, start: 21, offset: 4 });
-  laser6.addChannel({ universe, start: 21, offset: 5 });
-  laser7.addChannel({ universe, start: 21, offset: 6 });
-  laser8.addChannel({ universe, start: 21, offset: 7 });
-  laser9.addChannel({ universe, start: 21, offset: 8 });
-  laser10.addChannel({ universe, start: 21, offset: 9 });
-  laser11.addChannel({ universe, start: 21, offset: 10 });
-  laser12.addChannel({ universe, start: 21, offset: 11 });
-  laser13.addChannel({ universe, start: 21, offset: 12 });
-  laser14.addChannel({ universe, start: 21, offset: 13 });
-  laser15.addChannel({ universe, start: 21, offset: 14 });
-  laser16.addChannel({ universe, start: 21, offset: 15 });
+const prepareScenes = () => {
+  laser1.addChannel({ universe, start: 229, offset: 0 });
+  laser2.addChannel({ universe, start: 229, offset: 1 });
+  laser3.addChannel({ universe, start: 229, offset: 2 });
+  laser4.addChannel({ universe, start: 229, offset: 3 });
+  laser5.addChannel({ universe, start: 229, offset: 4 });
+  laser6.addChannel({ universe, start: 229, offset: 5 });
+  laser7.addChannel({ universe, start: 229, offset: 6 });
+  laser8.addChannel({ universe, start: 229, offset: 7 });
+  laser9.addChannel({ universe, start: 229, offset: 8 });
+  laser10.addChannel({ universe, start: 229, offset: 9 });
+  laser11.addChannel({ universe, start: 229, offset: 10 });
+  laser12.addChannel({ universe, start: 229, offset: 11 });
+  laser13.addChannel({ universe, start: 229, offset: 12 });
+  laser14.addChannel({ universe, start: 229, offset: 13 });
+  laser15.addChannel({ universe, start: 229, offset: 14 });
+  laser16.addChannel({ universe, start: 229, offset: 15 });
 
-  dimmerChannelGroup.addChannel({ universe, start: 1, offset: 0 });
-  dimmerChannelGroup.addChannel({ universe, start: 11, offset: 0 });
+  power1.addChannel({ universe, start: 193, offset: 0 });
+  power2.addChannel({ universe, start: 194, offset: 0 });
+  power3.addChannel({ universe, start: 195, offset: 0 });
 
-  redChannelGroup.addChannel({ universe, start: 1, offset: 1 });
-  redChannelGroup.addChannel({ universe, start: 11, offset: 1 });
+  dimmerChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 0 });
+  dimmerChannelGroup.addChannels({
+    universe,
+    starts: PAR_LED_RGB_SMALL,
+    offset: 0,
+  });
+  dimmerChannelGroup.addChannels({ universe, starts: PAR_LED_RGB, offset: 0 });
 
-  greenChannelGroup.addChannel({ universe, start: 1, offset: 2 });
-  greenChannelGroup.addChannel({ universe, start: 11, offset: 2 });
+  redChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 1 });
+  redChannelGroup.addChannels({
+    universe,
+    starts: PAR_LED_RGB_SMALL,
+    offset: 1,
+  });
+  redChannelGroup.addChannels({ universe, starts: PAR_LED_RGB, offset: 1 });
 
-  blueChannelGroup.addChannel({ universe, start: 1, offset: 3 });
-  blueChannelGroup.addChannel({ universe, start: 11, offset: 3 });
+  greenChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 2 });
+  greenChannelGroup.addChannels({
+    universe,
+    starts: PAR_LED_RGB_SMALL,
+    offset: 2,
+  });
+  greenChannelGroup.addChannels({ universe, starts: PAR_LED_RGB, offset: 2 });
 
-  whiteChannelGroup.addChannel({ universe, start: 1, offset: 4 });
-  whiteChannelGroup.addChannel({ universe, start: 11, offset: 4 });
+  blueChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 3 });
+  blueChannelGroup.addChannels({
+    universe,
+    starts: PAR_LED_RGB_SMALL,
+    offset: 3,
+  });
+  blueChannelGroup.addChannels({ universe, starts: PAR_LED_RGB, offset: 3 });
 
-  ambarChannelGroup.addChannel({ universe, start: 1, offset: 5 });
-  ambarChannelGroup.addChannel({ universe, start: 11, offset: 5 });
+  whiteChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 4 });
 
-  uvChannelGroup.addChannel({ universe, start: 1, offset: 6 });
-  uvChannelGroup.addChannel({ universe, start: 11, offset: 6 });
+  ambarChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 5 });
 
-  strobeChannelGroup.addChannel({ universe, start: 1, offset: 7 });
-  strobeChannelGroup.addChannel({ universe, start: 11, offset: 7 });
+  uvChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 6 });
 
-  velocityChannelGroup.addChannel({ universe, start: 1, offset: 9 });
-  velocityChannelGroup.addChannel({ universe, start: 11, offset: 9 });
+  strobeChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 7 });
+  strobeChannelGroup.addChannels({
+    universe,
+    starts: PAR_LED_RGB_SMALL,
+    offset: 4,
+  });
+  strobeChannelGroup.addChannels({ universe, starts: PAR_LED_RGB, offset: 5 });
+
+  velocityChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 9 });
 
   addGenerator(
     keepValue({
@@ -267,6 +311,22 @@ const prepareUI = () => {
   addGenerator(redOnly());
   addGenerator(blueOnly());
   addGenerator(colored());
+
+  addGenerator(
+    keepValue({
+      channelGroup: power2,
+      targetValue: { valueMSB: 255 },
+      weightProvider: () => {
+        const currentVal = getValueProvider('laser-1', 0, 255)();
+
+        if (currentVal > 10) {
+          return 1;
+        }
+
+        return 0;
+      },
+    })
+  );
 
   addGenerator(
     keepValue({
@@ -439,82 +499,177 @@ const prepareUI = () => {
           },
           {
             note: 24,
-            channelGroup: laser3,
+            channelGroup: laser4,
             velocityToDmxValue: fixedVelocityToDmxValue(0),
             mixMode: MixMode.CLEAR,
           },
           {
             note: 26,
-            channelGroup: laser3,
+            channelGroup: laser4,
             velocityToDmxValue: fixedVelocityToDmxValue(0),
             mixMode: MixMode.CLEAR,
           },
           {
             note: 28,
-            channelGroup: laser3,
+            channelGroup: laser4,
             velocityToDmxValue: fixedVelocityToDmxValue(0),
             mixMode: MixMode.CLEAR,
           },
           {
             note: 29,
-            channelGroup: laser3,
+            channelGroup: laser4,
             velocityToDmxValue: fixedVelocityToDmxValue(0),
             mixMode: MixMode.CLEAR,
           },
           {
             note: 31,
-            channelGroup: laser3,
+            channelGroup: laser4,
             velocityToDmxValue: fixedVelocityToDmxValue(0),
             mixMode: MixMode.CLEAR,
           },
           {
             note: 33,
-            channelGroup: laser3,
+            channelGroup: laser4,
+            velocityToDmxValue: fixedVelocityToDmxValue(0),
+            mixMode: MixMode.CLEAR,
+          },
+          {
+            note: 35,
+            channelGroup: laser4,
             velocityToDmxValue: fixedVelocityToDmxValue(0),
             mixMode: MixMode.CLEAR,
           },
           {
             note: 24,
-            channelGroup: laser3,
-            velocityToDmxValue: fixedVelocityToDmxValue(6),
+            channelGroup: laser4,
+            velocityToDmxValue: fixedVelocityToDmxValue(18),
             mixMode: MixMode.AVERAGE,
           },
           {
             note: 26,
-            channelGroup: laser3,
-            velocityToDmxValue: fixedVelocityToDmxValue(16),
-            mixMode: MixMode.AVERAGE,
-          },
-          {
-            note: 28,
-            channelGroup: laser3,
-            velocityToDmxValue: fixedVelocityToDmxValue(26),
-            mixMode: MixMode.AVERAGE,
-          },
-          {
-            note: 29,
-            channelGroup: laser3,
+            channelGroup: laser4,
             velocityToDmxValue: fixedVelocityToDmxValue(36),
             mixMode: MixMode.AVERAGE,
           },
           {
+            note: 28,
+            channelGroup: laser4,
+            velocityToDmxValue: fixedVelocityToDmxValue(54),
+            mixMode: MixMode.AVERAGE,
+          },
+          {
+            note: 29,
+            channelGroup: laser4,
+            velocityToDmxValue: fixedVelocityToDmxValue(72),
+            mixMode: MixMode.AVERAGE,
+          },
+          {
             note: 31,
-            channelGroup: laser3,
-            velocityToDmxValue: fixedVelocityToDmxValue(46),
+            channelGroup: laser4,
+            velocityToDmxValue: fixedVelocityToDmxValue(90),
             mixMode: MixMode.AVERAGE,
           },
           {
             note: 33,
-            channelGroup: laser3,
-            velocityToDmxValue: fixedVelocityToDmxValue(56),
+            channelGroup: laser4,
+            velocityToDmxValue: fixedVelocityToDmxValue(108),
+            mixMode: MixMode.AVERAGE,
+          },
+          {
+            note: 35,
+            channelGroup: laser4,
+            velocityToDmxValue: fixedVelocityToDmxValue(127),
+            mixMode: MixMode.AVERAGE,
+          },
+
+          {
+            note: 36,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(0),
+            mixMode: MixMode.CLEAR,
+          },
+          {
+            note: 38,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(0),
+            mixMode: MixMode.CLEAR,
+          },
+          {
+            note: 40,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(0),
+            mixMode: MixMode.CLEAR,
+          },
+          {
+            note: 41,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(0),
+            mixMode: MixMode.CLEAR,
+          },
+          {
+            note: 43,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(0),
+            mixMode: MixMode.CLEAR,
+          },
+          {
+            note: 45,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(0),
+            mixMode: MixMode.CLEAR,
+          },
+          {
+            note: 47,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(0),
+            mixMode: MixMode.CLEAR,
+          },
+          {
+            note: 36,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(18),
+            mixMode: MixMode.AVERAGE,
+          },
+          {
+            note: 38,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(36),
+            mixMode: MixMode.AVERAGE,
+          },
+          {
+            note: 40,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(54),
+            mixMode: MixMode.AVERAGE,
+          },
+          {
+            note: 41,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(72),
+            mixMode: MixMode.AVERAGE,
+          },
+          {
+            note: 43,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(90),
+            mixMode: MixMode.AVERAGE,
+          },
+          {
+            note: 45,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(108),
+            mixMode: MixMode.AVERAGE,
+          },
+          {
+            note: 47,
+            channelGroup: laser9,
+            velocityToDmxValue: fixedVelocityToDmxValue(127),
             mixMode: MixMode.AVERAGE,
           },
         ],
       })
     );
   }
-
-  startProcessing();
 };
 
 addDevicesChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
@@ -524,17 +679,14 @@ addDevicesChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
   // Add "mock" device if none
   if (dmxOutputDeviceIds.length <= 0) {
     console.log('No output detected.');
-  } else {
-    if (!universe) {
-      console.log('Creating universes');
-      universe = createUniverse(1, dmxOutputDeviceIds[0]);
-      setDefaultUniverse(universe);
-    }
-  }
-
-  if (universe && midiInputId) {
-    prepareUI();
+  } else if (!universe) {
+    console.log('Creating universes');
+    universe = createUniverse(1, dmxOutputDeviceIds[0]);
+    setDefaultUniverse(universe);
   }
 });
 
-reloadDevices();
+reloadDevices().then(() => {
+  startEngine();
+  prepareScenes();
+});

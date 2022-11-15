@@ -1,10 +1,16 @@
-import { DmxOutputDeviceId, DMXData, LocalConnMessage } from '../Engine';
+import {
+  DmxOutputDeviceId,
+  DMXData,
+  LocalConnMessage,
+  LocalConnValues,
+} from '../Engine';
 
 export enum EngineOutputMessageNames {
   REQUEST_DEVICES = 'request-devices',
   WRITE_TO_DEVICE = 'write-to-device',
   ENABLE_MIDI_INPUT = 'enable-midi-input',
   LOCAL_CONN = 'local-conn',
+  ENGINE_STOPPED = 'engine-stopped',
 }
 
 export enum EngineInputMessageNames {
@@ -13,6 +19,8 @@ export enum EngineInputMessageNames {
   MIDI_INPUT_DATA = 'midi-input-data',
   LOCAL_CONN = 'local-conn',
   LOCAL_CONN_REQUEST_VALUE = 'local-conn-request-value',
+  STOP_ENGINE = 'stop-engine',
+  INIT_ENGINE = 'init-engine',
 }
 
 export interface EngineOutputMessage<
@@ -118,4 +126,27 @@ export interface EngineWriteToDeviceOutputMessageData {
 export type EngineWriteToDeviceOutputMessage = EngineOutputMessage<
   EngineOutputMessageNames.WRITE_TO_DEVICE,
   EngineWriteToDeviceOutputMessageData
+>;
+
+export type EngineStopInputMessage = EngineInputMessage<
+  EngineInputMessageNames.STOP_ENGINE,
+  void
+>;
+
+export type EngineState = {
+  localConnValues: LocalConnValues;
+};
+
+export type EngineStoppedOutputMessageData = EngineState;
+
+export type EngineStoppedOutputMessage = EngineOutputMessage<
+  EngineOutputMessageNames.ENGINE_STOPPED,
+  EngineStoppedOutputMessageData
+>;
+
+export type EngineInitInputMessageData = EngineState | undefined;
+
+export type EngineInitInputMessage = EngineInputMessage<
+  EngineInputMessageNames.INIT_ENGINE,
+  EngineInitInputMessageData
 >;

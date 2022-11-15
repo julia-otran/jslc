@@ -6,6 +6,8 @@ import {
   MenuItemConstructorOptions,
 } from 'electron';
 
+import { restartEngine } from './engine-handler';
+
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
   selector?: string;
   submenu?: DarwinMenuItemConstructorOptions[] | Menu;
@@ -206,6 +208,18 @@ export default class MenuBuilder {
             accelerator: 'Ctrl+W',
             click: () => {
               this.mainWindow.close();
+            },
+          },
+        ],
+      },
+      {
+        label: '&Engine',
+        submenu: [
+          {
+            label: '&Restart',
+            accelerator: 'Ctrl+R',
+            click: () => {
+              restartEngine();
             },
           },
         ],

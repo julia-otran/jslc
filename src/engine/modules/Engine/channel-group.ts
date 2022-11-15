@@ -46,6 +46,20 @@ export class ChannelGroup {
     this.outputs.push({ universe, channelMSB });
   }
 
+  addChannels({
+    universe,
+    starts,
+    offset,
+  }: {
+    universe: UniverseOrDefault;
+    starts: number[];
+    offset?: number | undefined;
+  }): void {
+    starts.forEach((start) => {
+      this.addChannel({ universe, start, offset });
+    });
+  }
+
   removeChannel({
     universe,
     start,

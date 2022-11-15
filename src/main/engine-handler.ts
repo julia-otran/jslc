@@ -4,6 +4,7 @@ import { open, readdir, FileHandle } from 'fs/promises';
 import path from 'path';
 import { Worker } from 'node:worker_threads';
 import fs from 'fs';
+import { LocalStorage } from 'node-localstorage';
 
 import {
   EngineOutputMessageNames,
@@ -20,6 +21,11 @@ import {
   EngineLocalConnInputMessage,
   EngineLocalConnRequestValueInputMessage,
 } from '../engine-types';
+
+// TODO: Fix this when turning platform portable
+// However, we don't even support windows or osx drivers.
+// So still there is no way to run this software on other platforms
+const localStorage = new LocalStorage('~/.jslc-local-storage');
 
 export type UIMessageDispatcher = (channel: string, message: any) => void;
 
@@ -265,9 +271,44 @@ ipcMain.on(
   }
 );
 
-export const terminateEngine = (): void => {
-  openedDevices.forEach((dev) => dev.handle.close());
-  openedDevices = [];
+export const stopEngine = (): Promise<void> => {
+  const currentWorker = worker;
+
+  if (currentWorker) {
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(() => {
+        console.error('Engine not stopped in 10s');
+
+        resolve(currentWorker.terminate().then(() => {}));
+      }, 10000);
+
+      currentWorker.on('message', (message: EngineOutputMessage) => {
+        if (message.message === EngineOutputMessageNames.ENGINE_STOPPED) {
+          clearTimeout(timeoutId);
+
+          localStorage.setItem('ENGINE_STATE', JSON.stringify(message.data));
+
+          resolve(currentWorker.terminate().then(() => {}));
+        }
+      });
+
+      sendMessage({
+        message: EngineInputMessageNames.STOP_ENGINE,
+        data: undefined,
+      });
+
+      worker = undefined;
+    });
+  }
+
+  return Promise.resolve();
+};
+
+export const terminateEngine = (): Promise<void> => {
+  return stopEngine().then(() => {
+    openedDevices.forEach((dev) => dev.handle.close());
+    openedDevices = [];
+  });
 };
 
 const workerFile = app.isPackaged
@@ -286,28 +327,26 @@ const loadWorker = () => {
   });
 
   worker.on('error', (...args) => {
+    localStorage.removeItem('ENGINE_STATE');
     console.log('Worker errored', ...args);
   });
+
+  sendMessage({
+    message: EngineInputMessageNames.INIT_ENGINE,
+    data: JSON.parse(localStorage.getItem('ENGINE_STATE')),
+  });
+};
+
+export const restartEngine = async (): Promise<void> => {
+  return stopEngine().then(loadWorker);
 };
 
 if (!app.isPackaged) {
   fs.watchFile(workerFile, () => {
     console.log('Worker file update detected');
-    const currentWorker = worker;
-
-    if (currentWorker) {
-      worker = undefined;
-      currentWorker
-        .terminate()
-        .catch((e) => ({ e }))
-        .then(loadWorker);
-    } else {
-      loadWorker();
-    }
+    restartEngine();
   });
 }
-
-loadWorker();
 
 const sendMessage = <TMessage extends EngineInputMessage>(
   message: TMessage

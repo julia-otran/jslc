@@ -1,6 +1,6 @@
 import { Grid, Stack } from '@mui/material';
 
-import { ValueFader } from '../../../../Components';
+import { ValueFader, BPMTapper } from '../../../../Components';
 
 export const Page1 = (): JSX.Element => {
   return (
@@ -35,19 +35,19 @@ export const Page1 = (): JSX.Element => {
           <ValueFader connectorKey="par-led-strobe" title="Strb" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="par-led-velocity" title="Velocity" />
-        </Grid>
-        <Grid item>
           <ValueFader connectorKey="par-led-red-only" title="R/O" />
         </Grid>
         <Grid item>
           <ValueFader connectorKey="par-led-blue-only" title="B/O" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="par-led-colored-weight" title="Color W" />
+          <ValueFader connectorKey="par-led-colored-weight" title="Colored" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="par-led-colored-velocity" title="Color V" />
+          <BPMTapper connectorKey="par-led-colored-velocity" title="Col BPM" />
+        </Grid>
+        <Grid item>
+          <BPMTapper connectorKey="par-led-colored-fade" title="Col Fade" />
         </Grid>
       </Grid>
 
@@ -57,52 +57,31 @@ export const Page1 = (): JSX.Element => {
         sx={{ width: '100%', flex: 1, padding: '24px' }}
       >
         <Grid item>
-          <ValueFader connectorKey="laser-1" />
+          <ValueFader connectorKey="laser-1" title="Mode" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="laser-2" />
+          <ValueFader connectorKey="laser-2" title="Shape" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="laser-3" />
+          <ValueFader connectorKey="laser-3" title="Size" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="laser-4" />
+          <ValueFader connectorKey="laser-4" title="Rotate" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="laser-5" />
+          <ValueFader connectorKey="laser-5" title="L/R" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="laser-6" />
+          <ValueFader connectorKey="laser-6" title="Up/Dw" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="laser-7" />
+          <ValueFader connectorKey="laser-7" title="Sc Hor" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="laser-8" />
+          <ValueFader connectorKey="laser-8" title="Sc Vert" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="laser-9" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="laser-10" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="laser-11" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="laser-12" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="laser-13" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="laser-14" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="laser-15" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="laser-16" />
+          <ValueFader connectorKey="laser-9" title="Color" />
         </Grid>
       </Grid>
     </Stack>

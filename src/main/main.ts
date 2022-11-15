@@ -14,7 +14,11 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import { terminateEngine, setUIMessageDispatcher } from './engine-handler';
+import {
+  restartEngine,
+  terminateEngine,
+  setUIMessageDispatcher,
+} from './engine-handler';
 
 export default class AppUpdater {
   constructor() {
@@ -87,11 +91,14 @@ const createWindow = async () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
     }
+
     if (process.env.START_MINIMIZED) {
       mainWindow.minimize();
     } else {
       mainWindow.show();
     }
+
+    restartEngine();
   });
 
   mainWindow.on('closed', () => {
@@ -117,13 +124,15 @@ const createWindow = async () => {
  */
 
 app.on('window-all-closed', () => {
-  // Respect the OSX convention of having the application in memory even
-  // after all windows have been closed
-  terminateEngine();
+  console.log('Terminating engine....');
 
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
+  terminateEngine().then(() => {
+    // Respect the OSX convention of having the application in memory even
+    // after all windows have been closed
+    if (process.platform !== 'darwin') {
+      app.quit();
+    }
+  });
 });
 
 app

@@ -128,9 +128,12 @@ registerMessageListener<EngineDevicesInputMessage>(
         );
       });
 
+    const midiCtrlName = 'VMPK';
+    // const midiCtrlName = 'WORLDE';
+
     // Midi Inputs
     const validMidiInputs = midiInputDevices.filter((d) =>
-      d.name.includes('VMPK')
+      d.name.includes(midiCtrlName)
     );
 
     validMidiInputs.forEach((dev) => {

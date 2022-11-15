@@ -502,7 +502,10 @@ const writeDmxResults = async (results: DmxResults): Promise<void> => {
   });
 };
 
+type RunFinishCallback = () => void;
+
 let process = false;
+let runFinishCallback: RunFinishCallback | undefined = undefined;
 
 export const startProcessing = async () => {
   let errorCount: number = 0;
@@ -547,8 +550,17 @@ export const startProcessing = async () => {
       }
     }
   }
+
+  runFinishCallback?.();
 };
 
-export const stopProcessing = () => {
-  process = false;
+export const stopProcessing = (): Promise<void> => {
+  return new Promise((resolve) => {
+    if (process) {
+      runFinishCallback = resolve;
+      process = false;
+    } else {
+      resolve();
+    }
+  });
 };
