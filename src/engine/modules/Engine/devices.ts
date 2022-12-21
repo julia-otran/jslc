@@ -18,7 +18,10 @@ export type InputDevice<TData> = {
   read: DeviceReadCb<TData>;
 };
 
-export type DevicesChangeCallback = ({}: {
+export type DevicesChangeCallback = ({
+  dmxOutputDeviceIds,
+  inputDeviceIds,
+}: {
   dmxOutputDeviceIds: DmxOutputDeviceId[];
   inputDeviceIds: InputDeviceId[];
 }) => void;

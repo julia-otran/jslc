@@ -1,22 +1,12 @@
 import { v4 as uuidV4 } from 'uuid';
+import type { LogicalDeviceIds } from '../../../main/devices-bridge';
 
-export interface Devices {
-  requestId: string;
-  inputs: {
-    midi: Array<{
-      name: string;
-      id: number;
-    }>;
-  };
-  outputs: {
-    linuxDMX: Array<number>;
-    local: Array<number>;
-  };
-}
+export type Devices = LogicalDeviceIds;
+export type DmxOutputDevice = LogicalDeviceIds['dmxOutputs'][0];
 
-export type DevicesFoundCallback = (devices: Devices) => void;
+export type DevicesFoundCallback = (devices: LogicalDeviceIds) => void;
 let devicesFoundCallbacks: Array<DevicesFoundCallback> = [];
-let devices: Devices | undefined = undefined;
+let devices: LogicalDeviceIds | undefined;
 
 export const addDevicesFoundCallback = (fn: DevicesFoundCallback): void => {
   devicesFoundCallbacks.push(fn);
@@ -31,7 +21,7 @@ export const removeDevicesFoundCallback = (fn: DevicesFoundCallback): void => {
 };
 
 export type ValuesCallback = (
-  dmxOutputDevice: number,
+  dmxOutputDevice: DmxOutputDevice,
   data: Uint8Array
 ) => void;
 
@@ -45,21 +35,22 @@ export const removeValuesCallback = (cb: ValuesCallback): void => {
   valuesCallbacks = valuesCallbacks.filter((c) => c !== cb);
 };
 
-window.electron.ipcRenderer.on('devices-found', (dvs: Devices): void => {
-  devices = dvs;
-  devicesFoundCallbacks.forEach((dvc) => dvc(devices));
+window.electron.ipcRenderer.on('devices-found', (eventDevices): void => {
+  const currentDevices = eventDevices as LogicalDeviceIds;
+  devices = currentDevices;
+
+  devicesFoundCallbacks.forEach((dvc) => dvc(currentDevices));
 });
 
 window.electron.ipcRenderer.requestDevices(uuidV4());
 
 interface DmxDataDone {
-  dmxOutputDevice: number;
+  dmxOutputDevice: DmxOutputDevice;
   dmxData: number[];
 }
 
-window.electron.ipcRenderer.on(
-  'dmx-data-done',
-  ({ dmxOutputDevice, dmxData }: DmxDataDone): void => {
-    valuesCallbacks.forEach((cb) => cb(dmxOutputDevice, dmxData));
-  }
-);
+window.electron.ipcRenderer.on('dmx-data-done', (eventDmxData): void => {
+  const { dmxOutputDevice, dmxData } = eventDmxData as DmxDataDone;
+
+  valuesCallbacks.forEach((cb) => cb(dmxOutputDevice, new Uint8Array(dmxData)));
+});

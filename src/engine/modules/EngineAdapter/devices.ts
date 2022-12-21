@@ -12,10 +12,9 @@ import {
   DmxOutputDeviceId,
   InputDeviceId,
   DMXData,
-  isDmxOutputDeviceId,
   EngineDevicesInputMessage,
   EngineInputMessageNames,
-  EngineMidiInputDataInputMessage,
+  EngineInputDataInputMessage,
   EngineOutputMessageNames,
   EngineRequestDevicesOutputMessage,
   EngineWriteToDeviceDoneInputMessage,
@@ -23,7 +22,10 @@ import {
 } from '../../../engine-types';
 import { registerMessageListener, sendMessage } from './messaging';
 
-type DeviceReloadCallback = ({}: {
+type DeviceReloadCallback = ({
+  dmxOutputDeviceIds,
+  inputDeviceIds,
+}: {
   dmxOutputDeviceIds: DmxOutputDeviceId[];
   inputDeviceIds: InputDeviceId[];
 }) => void;
@@ -35,195 +37,31 @@ const deviceReloadCallbacks: Record<
 > = {};
 
 interface RegisteredInputDevices {
-  inputDeviceId: InputDeviceId;
-  midiInputId: number;
+  midi: string[];
+  dmx: string[];
 }
 
 let registeredDmxOutputDevices: DmxOutputDeviceId[] = [];
-let registeredInputDevices: RegisteredInputDevices[] = [];
+const registeredInputDevices: RegisteredInputDevices = { midi: [], dmx: [] };
 
-let midiInputQueue: Record<number, Array<any>> = [];
+const inputQueue: Record<string, Array<any>> = {};
 
-registerMessageListener<EngineMidiInputDataInputMessage>(
-  EngineInputMessageNames.MIDI_INPUT_DATA,
+registerMessageListener<EngineInputDataInputMessage>(
+  EngineInputMessageNames.INPUT_DATA,
   (message) => {
-    const { midiInputId, ...other } = message;
+    const { inputId, ...other } = message;
 
-    if (midiInputQueue[midiInputId] === undefined) {
-      midiInputQueue[midiInputId] = [];
+    if (inputQueue[inputId] === undefined) {
+      inputQueue[inputId] = [];
     }
 
-    midiInputQueue[midiInputId].push(other);
+    inputQueue[inputId].push(other);
   }
 );
-
-registerMessageListener<EngineDevicesInputMessage>(
-  EngineInputMessageNames.DEVICES_FOUND,
-  (data) => {
-    const {
-      localDmxOutputDevices,
-      linuxDmxOutputDevices,
-      midiInputDevices,
-      requestId,
-    } = data;
-    console.log('Engine received devices: ', data);
-
-    // Outputs
-    // Linux DMX
-    linuxDmxOutputDevices
-      .filter(
-        (d) => getDmxOutputDeviceIds().find((id) => id === d) === undefined
-      )
-      .forEach((deviceId: number) => {
-        if (isDmxOutputDeviceId(deviceId)) {
-          registerDmxOutputDevice(deviceId, (dmxData) => {
-            return writeToDevice(deviceId, dmxData);
-          });
-
-          registeredDmxOutputDevices.push(deviceId);
-        }
-      });
-
-    getDmxOutputDeviceIds()
-      .filter(
-        (devId) => linuxDmxOutputDevices.find((d) => d === devId) === undefined
-      )
-      .filter(
-        (devId) =>
-          registeredDmxOutputDevices.find((d) => d === devId) !== undefined
-      )
-      .forEach((deviceId) => {
-        unregisterDmxOutputDevice(deviceId);
-        registeredDmxOutputDevices = registeredDmxOutputDevices.filter(
-          (d) => d !== deviceId
-        );
-      });
-
-    // Local outputs
-    localDmxOutputDevices
-      .filter(
-        (d) => getDmxOutputDeviceIds().find((id) => id === d) === undefined
-      )
-      .forEach((deviceId: number) => {
-        if (isDmxOutputDeviceId(deviceId)) {
-          registerDmxOutputDevice(deviceId, (dmxData) => {
-            return writeToDevice(deviceId, dmxData);
-          });
-
-          registeredDmxOutputDevices.push(deviceId);
-        }
-      });
-
-    getDmxOutputDeviceIds()
-      .filter(
-        (devId) => localDmxOutputDevices.find((d) => d === devId) === undefined
-      )
-      .filter(
-        (devId) => localDmxOutputDevices.find((d) => d === devId) !== undefined
-      )
-      .forEach((deviceId) => {
-        unregisterDmxOutputDevice(deviceId);
-        registeredDmxOutputDevices = registeredDmxOutputDevices.filter(
-          (d) => d !== deviceId
-        );
-      });
-
-    const midiCtrlName = 'VMPK';
-    // const midiCtrlName = 'WORLDE';
-
-    // Midi Inputs
-    const validMidiInputs = midiInputDevices.filter((d) =>
-      d.name.includes(midiCtrlName)
-    );
-
-    validMidiInputs.forEach((dev) => {
-      if (
-        registeredInputDevices.find((d) => d.midiInputId === dev.id) !==
-        undefined
-      ) {
-        return;
-      }
-
-      const inputDeviceId = Math.max(0, ...getInputDeviceIds()) + 1;
-
-      registerInputDevice(inputDeviceId, () => {
-        const data = midiInputQueue[dev.id] || [];
-        midiInputQueue[dev.id] = [];
-        return data;
-      });
-
-      registeredInputDevices.push({ inputDeviceId, midiInputId: dev.id });
-
-      sendMessage({
-        message: EngineOutputMessageNames.ENABLE_MIDI_INPUT,
-        data: {
-          requestId: uuidV4(),
-          midiInputId: dev.id,
-        },
-      });
-    });
-
-    registeredInputDevices.map((registeredInputDevice) => {
-      if (
-        midiInputDevices.find(
-          (d) => d.id === registeredInputDevice.midiInputId
-        ) === undefined
-      ) {
-        unregisterInputDevice(registeredInputDevice.inputDeviceId);
-        registeredInputDevices = registeredInputDevices.filter(
-          (d) => d.inputDeviceId !== registeredInputDevice.inputDeviceId
-        );
-      }
-    });
-
-    deviceReloadCallbacks[requestId]?.({
-      dmxOutputDeviceIds: getDmxOutputDeviceIds(),
-      inputDeviceIds: getInputDeviceIds(),
-    });
-
-    delete deviceReloadCallbacks[requestId];
-  }
-);
-
-export const reloadDevices = () =>
-  new Promise<{
-    dmxOutputDeviceIds: DmxOutputDeviceId[];
-    inputDeviceIds: InputDeviceId[];
-  }>((resolve) => {
-    const requestId = uuidV4();
-
-    deviceReloadCallbacks[requestId] = ({
-      dmxOutputDeviceIds,
-      inputDeviceIds,
-    }) => {
-      resolve({ dmxOutputDeviceIds, inputDeviceIds });
-    };
-
-    sendMessage<EngineRequestDevicesOutputMessage>({
-      message: EngineOutputMessageNames.REQUEST_DEVICES,
-      data: { requestId },
-    });
-  });
 
 type WriteCallback = (success: boolean) => void;
 
 const writeCallbacks: Record<string, WriteCallback> = {};
-
-registerMessageListener<EngineWriteToDeviceDoneInputMessage>(
-  EngineInputMessageNames.WRITE_TO_DEVICE_DONE,
-  (data) => {
-    if (!data.success) {
-      reloadDevices();
-    }
-
-    const cb: WriteCallback | undefined = writeCallbacks[data.requestId];
-
-    if (cb) {
-      cb(data.success);
-      delete writeCallbacks[data.requestId];
-    }
-  }
-);
 
 const writeToDevice = (
   dmxOutputDevice: DmxOutputDeviceId,
@@ -232,7 +70,7 @@ const writeToDevice = (
   return new Promise((resolve, reject) => {
     const requestId = uuidV4();
     let callbackRun = false;
-    let timeoutId: NodeJS.Timeout | undefined = undefined;
+    let timeoutId: NodeJS.Timeout | undefined;
 
     const writeCallback: WriteCallback = (success) => {
       if (timeoutId) {
@@ -264,3 +102,150 @@ const writeToDevice = (
     });
   });
 };
+
+registerMessageListener<EngineDevicesInputMessage>(
+  EngineInputMessageNames.DEVICES_FOUND,
+  (deviceData) => {
+    const { dmxOutputs, dmxInputs, midiInputs, requestId } = deviceData;
+    console.log('Engine received devices: ', deviceData);
+
+    // Outputs
+    // Linux DMX
+    dmxOutputs
+      .filter(
+        (d) => getDmxOutputDeviceIds().find((id) => id === d) === undefined
+      )
+      .forEach((deviceId: string) => {
+        registerDmxOutputDevice(deviceId, (dmxData) => {
+          return writeToDevice(deviceId, dmxData);
+        });
+
+        registeredDmxOutputDevices.push(deviceId);
+      });
+
+    getDmxOutputDeviceIds()
+      .filter((devId) => dmxOutputs.find((d) => d === devId) === undefined)
+      .filter(
+        (devId) =>
+          registeredDmxOutputDevices.find((d) => d === devId) !== undefined
+      )
+      .forEach((deviceId) => {
+        unregisterDmxOutputDevice(deviceId);
+        registeredDmxOutputDevices = registeredDmxOutputDevices.filter(
+          (d) => d !== deviceId
+        );
+      });
+
+    // Midi Inputs
+
+    midiInputs.forEach((dev) => {
+      if (registeredInputDevices.midi.find((d) => d === dev) !== undefined) {
+        return;
+      }
+
+      registerInputDevice(dev, () => {
+        const data = inputQueue[dev] || [];
+        inputQueue[dev] = [];
+        return data;
+      });
+
+      registeredInputDevices.midi.push(dev);
+
+      sendMessage({
+        message: EngineOutputMessageNames.ENABLE_INPUT,
+        data: {
+          requestId: uuidV4(),
+          inputId: dev,
+        },
+      });
+    });
+
+    registeredInputDevices.midi.forEach((midiInputId) => {
+      if (midiInputs.find((d) => d === midiInputId) === undefined) {
+        unregisterInputDevice(midiInputId);
+
+        registeredInputDevices.midi = registeredInputDevices.midi.filter(
+          (d) => d !== midiInputId
+        );
+      }
+    });
+
+    // Dmx Inputs
+
+    dmxInputs.forEach((dev) => {
+      if (registeredInputDevices.dmx.find((d) => d === dev) !== undefined) {
+        return;
+      }
+
+      registerInputDevice(dev, () => {
+        const data = inputQueue[dev] || [];
+        inputQueue[dev] = [];
+        return data;
+      });
+
+      sendMessage({
+        message: EngineOutputMessageNames.ENABLE_INPUT,
+        data: {
+          requestId: uuidV4(),
+          inputId: dev,
+        },
+      });
+
+      registeredInputDevices.dmx.push(dev);
+    });
+
+    registeredInputDevices.dmx.forEach((inputId) => {
+      if (midiInputs.find((d) => d === inputId) === undefined) {
+        unregisterInputDevice(inputId);
+
+        registeredInputDevices.dmx = registeredInputDevices.dmx.filter(
+          (d) => d !== inputId
+        );
+      }
+    });
+
+    deviceReloadCallbacks[requestId]?.({
+      dmxOutputDeviceIds: getDmxOutputDeviceIds(),
+      inputDeviceIds: getInputDeviceIds(),
+    });
+
+    delete deviceReloadCallbacks[requestId];
+  }
+);
+
+// eslint-disable-next-line import/prefer-default-export
+export const reloadDevices = () =>
+  new Promise<{
+    dmxOutputDeviceIds: DmxOutputDeviceId[];
+    inputDeviceIds: InputDeviceId[];
+  }>((resolve) => {
+    const requestId = uuidV4();
+
+    deviceReloadCallbacks[requestId] = ({
+      dmxOutputDeviceIds,
+      inputDeviceIds,
+    }) => {
+      resolve({ dmxOutputDeviceIds, inputDeviceIds });
+    };
+
+    sendMessage<EngineRequestDevicesOutputMessage>({
+      message: EngineOutputMessageNames.REQUEST_DEVICES,
+      data: { requestId },
+    });
+  });
+
+registerMessageListener<EngineWriteToDeviceDoneInputMessage>(
+  EngineInputMessageNames.WRITE_TO_DEVICE_DONE,
+  (data) => {
+    if (!data.success) {
+      reloadDevices();
+    }
+
+    const cb: WriteCallback | undefined = writeCallbacks[data.requestId];
+
+    if (cb) {
+      cb(data.success);
+      delete writeCallbacks[data.requestId];
+    }
+  }
+);

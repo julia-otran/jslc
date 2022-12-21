@@ -3,12 +3,8 @@ export type DMXValue = number;
 
 export type DMXData = Uint8Array;
 
-export type DmxOutputDeviceId = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
-export type InputDeviceId = number;
-
-export const isDmxOutputDeviceId = (id: number): id is DmxOutputDeviceId => {
-  return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].find((n) => n === id) !== undefined;
-};
+export type DmxOutputDeviceId = string;
+export type InputDeviceId = string;
 
 export const validateDMXChannel = (n: DMXChannel): void => {
   if (n < 1) {

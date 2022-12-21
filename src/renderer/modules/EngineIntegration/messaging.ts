@@ -11,8 +11,8 @@ type MessageListenerMap<TData = any> = {
   [key in EngineOutputMessageNames]?: TData;
 };
 
-let messageListeners: MessageListenerMap = {};
-let messageForwarder: MessageForwarder | undefined = undefined;
+const messageListeners: MessageListenerMap = {};
+let messageForwarder: MessageForwarder | undefined;
 
 export const registerMessageListener = <TMessage extends EngineOutputMessage>(
   message: TMessage['message'],

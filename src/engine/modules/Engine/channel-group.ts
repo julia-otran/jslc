@@ -19,6 +19,7 @@ export const getOutput = (
 
 export class ChannelGroup {
   id: string;
+
   outputs: GroupOutputDefault[];
 
   constructor() {

@@ -1,6 +1,4 @@
-import midi from 'midi';
 import { app, ipcMain } from 'electron';
-import { open, readdir, FileHandle } from 'fs/promises';
 import path from 'path';
 import { Worker } from 'node:worker_threads';
 import fs from 'fs';
@@ -11,10 +9,10 @@ import {
   EngineRequestDevicesOutputMessage,
   EngineDevicesInputMessage,
   EngineInputMessageNames,
-  EngineMidiInputDataInputMessage,
+  EngineInputDataInputMessage,
   EngineWriteToDeviceDoneInputMessage,
   EngineWriteToDeviceOutputMessage,
-  EngineEnableMidiInputOutputMessage,
+  EngineEnableInputOutputMessage,
   EngineInputMessage,
   EngineOutputMessage,
   EngineLocalConnOutputMessage,
@@ -22,14 +20,32 @@ import {
   EngineLocalConnRequestValueInputMessage,
 } from '../engine-types';
 
+import {
+  writeToDmxOutputDevice,
+  openInput,
+  getLogicalDevicesIds,
+  closeDevices,
+  setLogicalDevicesInfo,
+  initDeviceBridge,
+  addChangeLogicalDevicesCallback,
+} from './devices-bridge';
+
 // TODO: Fix this when turning platform portable
 // However, we don't even support windows or osx drivers.
 // So still there is no way to run this software on other platforms
-const localStorage = new LocalStorage('~/.jslc-local-storage');
+const localStorage = new LocalStorage('jslc-local-storage');
+
+let worker: Worker | undefined;
+
+const sendMessage = <TMessage extends EngineInputMessage>(
+  message: TMessage
+): void => {
+  worker?.postMessage(message);
+};
 
 export type UIMessageDispatcher = (channel: string, message: any) => void;
 
-let uiMessageDispatcher: UIMessageDispatcher | undefined = undefined;
+let uiMessageDispatcher: UIMessageDispatcher | undefined;
 
 export const setUIMessageDispatcher = (
   dispatcher: UIMessageDispatcher
@@ -37,26 +53,13 @@ export const setUIMessageDispatcher = (
   uiMessageDispatcher = dispatcher;
 };
 
-const midiInput = new midi.Input();
-const midiInputs: Record<number, midi.Input> = {};
-
-interface OpenDevice {
-  path: string;
-  id: number;
-  handle: FileHandle;
-}
-
-let openedDevices: OpenDevice[] = [];
-
-const getDevId = (path: string): number => parseInt(path.replace('dmx', ''));
-
 type MessageListener<TData> = (data: TData) => void;
 
 type MessageListenerMap<TData = any> = {
   [key in EngineOutputMessageNames]?: TData;
 };
 
-let messageListeners: MessageListenerMap = {};
+const messageListeners: MessageListenerMap = {};
 
 const registerMessageListener = <TMessage extends EngineOutputMessage>(
   message: TMessage['message'],
@@ -69,127 +72,41 @@ const handleMessage = (message: EngineOutputMessage): void => {
   messageListeners[message.message]?.(message.data);
 };
 
-registerMessageListener<EngineEnableMidiInputOutputMessage>(
-  EngineOutputMessageNames.ENABLE_MIDI_INPUT,
+registerMessageListener<EngineEnableInputOutputMessage>(
+  EngineOutputMessageNames.ENABLE_INPUT,
   (msg) => {
-    const { midiInputId } = msg;
+    const { inputId } = msg;
 
-    console.log(`Openning midi input port ${midiInputId}`);
-
-    if (midiInputs[midiInputId] === undefined) {
-      midiInputs[midiInputId] = new midi.Input();
-
-      const input = midiInputs[midiInputId];
-
-      input.openPort(midiInputId);
-
-      input.on('message', (deltaTime, message) => {
-        console.log({ message, deltaTime });
-
-        sendMessage<EngineMidiInputDataInputMessage>({
-          message: EngineInputMessageNames.MIDI_INPUT_DATA,
-          data: { midiInputId, deltaTime: deltaTime.toString(), message },
-        });
+    openInput(inputId, (message, deltaTime) => {
+      sendMessage<EngineInputDataInputMessage>({
+        message: EngineInputMessageNames.INPUT_DATA,
+        data: { inputId, deltaTime, message },
       });
-    }
+    });
   }
 );
 
-export interface Devices {
-  requestId: string;
-  inputs: {
-    midi: Array<{
-      name: string;
-      id: number;
-    }>;
-  };
-  outputs: {
-    linuxDMX: Array<number>;
-    local: Array<number>;
-  };
-}
-
-let devices: Devices | undefined = undefined;
+let logicalDevices: ReturnType<typeof getLogicalDevicesIds> | undefined;
 
 registerMessageListener<EngineRequestDevicesOutputMessage>(
   EngineOutputMessageNames.REQUEST_DEVICES,
   async (data) => {
-    console.log('Loading Linux output DMX devices....');
+    logicalDevices = getLogicalDevicesIds();
 
-    const allDevices = await readdir('/dev');
-
-    const tryDevices = allDevices
-      .filter((d) => d.startsWith('dmx'))
-      .filter(
-        (dmxDevPath) =>
-          openedDevices.find((d) => d.path === dmxDevPath) === undefined
-      )
-      .map((dmxDevPath) =>
-        open(`/dev/${dmxDevPath}`, 'w').then((handle) => ({
-          handle,
-          path: dmxDevPath,
-          id: getDevId(dmxDevPath),
-        }))
-      );
-
-    const results = await Promise.allSettled(tryDevices);
-
-    (
-      results.filter(
-        (r) => r.status === 'fulfilled'
-      ) as PromiseFulfilledResult<OpenDevice>[]
-    )
-      .map((r) => r.value)
-      .forEach((dev) => openedDevices.push(dev));
-
-    console.log('Loading Midi inputs....');
-
-    const midiInputPortCount = midiInput.getPortCount();
-
-    const midiInputPorts = [];
-
-    for (let i = 0; i < midiInputPortCount; i++) {
-      midiInputPorts.push({
-        id: i,
-        name: midiInput.getPortName(i).toString(),
-      });
-    }
-
-    devices = {
-      requestId: data.requestId,
-      inputs: {
-        midi: midiInputPorts,
-      },
-      outputs: {
-        linuxDMX: openedDevices.map((d) => d.id),
-        local: [9],
-      },
-    };
-
-    console.log(devices);
-
-    const { requestId } = devices;
-
-    const linuxDmxOutputDevices = devices.outputs.linuxDMX;
-    const localDmxOutputDevices = devices.outputs.local;
-    const midiInputDevices = devices.inputs.midi;
+    const { requestId } = data;
 
     sendMessage<EngineDevicesInputMessage>({
       message: EngineInputMessageNames.DEVICES_FOUND,
       data: {
-        localDmxOutputDevices,
-        linuxDmxOutputDevices,
-        midiInputDevices,
+        ...logicalDevices,
         requestId,
       },
     });
-
-    uiMessageDispatcher?.('devices-found', devices);
   }
 );
 
 ipcMain.on('request-devices', () => {
-  uiMessageDispatcher?.('devices-found', devices);
+  uiMessageDispatcher?.('devices-found', getLogicalDevicesIds());
 });
 
 registerMessageListener<EngineWriteToDeviceOutputMessage>(
@@ -197,8 +114,8 @@ registerMessageListener<EngineWriteToDeviceOutputMessage>(
   (data) => {
     const { requestId, dmxOutputDevice, dmxData } = data;
 
-    if (dmxOutputDevice === 9) {
-      setTimeout(() => {
+    writeToDmxOutputDevice(dmxOutputDevice, dmxData)
+      .then(() => {
         sendMessage<EngineWriteToDeviceDoneInputMessage>({
           message: EngineInputMessageNames.WRITE_TO_DEVICE_DONE,
           data: { requestId, success: true },
@@ -208,42 +125,15 @@ registerMessageListener<EngineWriteToDeviceOutputMessage>(
           dmxOutputDevice,
           dmxData,
         });
-      }, 20);
-    } else {
-      const device = openedDevices.find((dev) => dev.id === dmxOutputDevice);
 
-      if (device) {
-        device.handle
-          .write(dmxData)
-          .then(() => {
-            sendMessage<EngineWriteToDeviceDoneInputMessage>({
-              message: EngineInputMessageNames.WRITE_TO_DEVICE_DONE,
-              data: { requestId, success: true },
-            });
-
-            uiMessageDispatcher?.('dmx-data-done', {
-              dmxOutputDevice,
-              dmxData,
-            });
-          })
-          .catch(() => {
-            device.handle.close();
-            openedDevices = openedDevices.filter(
-              (d) => d.id !== dmxOutputDevice
-            );
-
-            sendMessage<EngineWriteToDeviceDoneInputMessage>({
-              message: EngineInputMessageNames.WRITE_TO_DEVICE_DONE,
-              data: { requestId, success: false },
-            });
-          });
-      } else {
+        return undefined;
+      })
+      .catch(() => {
         sendMessage<EngineWriteToDeviceDoneInputMessage>({
           message: EngineInputMessageNames.WRITE_TO_DEVICE_DONE,
           data: { requestId, success: false },
         });
-      }
-    }
+      });
   }
 );
 
@@ -279,7 +169,7 @@ export const stopEngine = (): Promise<void> => {
       const timeoutId = setTimeout(() => {
         console.error('Engine not stopped in 10s');
 
-        resolve(currentWorker.terminate().then(() => {}));
+        resolve(currentWorker.terminate().then(() => undefined));
       }, 10000);
 
       currentWorker.on('message', (message: EngineOutputMessage) => {
@@ -288,7 +178,7 @@ export const stopEngine = (): Promise<void> => {
 
           localStorage.setItem('ENGINE_STATE', JSON.stringify(message.data));
 
-          resolve(currentWorker.terminate().then(() => {}));
+          resolve(currentWorker.terminate().then(() => undefined));
         }
       });
 
@@ -305,20 +195,28 @@ export const stopEngine = (): Promise<void> => {
 };
 
 export const terminateEngine = (): Promise<void> => {
-  return stopEngine().then(() => {
-    openedDevices.forEach((dev) => dev.handle.close());
-    openedDevices = [];
-  });
+  return stopEngine().then(closeDevices);
 };
 
 const workerFile = app.isPackaged
   ? path.join(__dirname, 'engine.js')
   : path.join(__dirname, '../../erb/dll/engine.js');
 
-let worker: Worker | undefined = undefined;
-
-const loadWorker = () => {
+const loadWorker = async () => {
   console.log('Loading worker....');
+
+  await initDeviceBridge();
+
+  const savedIOString = localStorage.getItem('IO');
+
+  if (savedIOString) {
+    setLogicalDevicesInfo(JSON.parse(savedIOString));
+  }
+
+  addChangeLogicalDevicesCallback((info) => {
+    localStorage.setItem('IO', JSON.stringify(info));
+    uiMessageDispatcher?.('devices-found', getLogicalDevicesIds());
+  });
 
   worker = new Worker(workerFile);
 
@@ -333,7 +231,7 @@ const loadWorker = () => {
 
   sendMessage({
     message: EngineInputMessageNames.INIT_ENGINE,
-    data: JSON.parse(localStorage.getItem('ENGINE_STATE')),
+    data: JSON.parse(localStorage.getItem('ENGINE_STATE') || '{}'),
   });
 };
 
@@ -347,9 +245,3 @@ if (!app.isPackaged) {
     restartEngine();
   });
 }
-
-const sendMessage = <TMessage extends EngineInputMessage>(
-  message: TMessage
-): void => {
-  worker?.postMessage(message);
-};

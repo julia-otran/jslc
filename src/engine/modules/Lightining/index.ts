@@ -673,7 +673,7 @@ const prepareScenes = () => {
 };
 
 addDevicesChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
-  midiInputId = inputDeviceIds[0];
+  [midiInputId] = inputDeviceIds;
   console.log({ midiInputId });
 
   // Add "mock" device if none
@@ -686,7 +686,11 @@ addDevicesChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
   }
 });
 
-reloadDevices().then(() => {
-  startEngine();
-  prepareScenes();
-});
+reloadDevices()
+  .then(() => {
+    startEngine();
+    prepareScenes();
+
+    return undefined;
+  })
+  .catch((e) => console.error(e));

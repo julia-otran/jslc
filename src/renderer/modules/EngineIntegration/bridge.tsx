@@ -11,26 +11,33 @@ import { equals } from 'ramda';
 
 import {
   Devices,
+  DmxOutputDevice as TDmxOutputDevice,
   addDevicesFoundCallback,
   removeDevicesFoundCallback,
   addValuesCallback,
   removeValuesCallback,
 } from './devices';
 
+export type DmxOutputDevice = TDmxOutputDevice;
+
 export type ValueCallback = (value: number) => void;
 
 export type ValuesType = {
-  devices: number[];
-  listenToCh(device: number, channel: number, cb: ValueCallback): () => void;
+  devices: DmxOutputDevice[];
+  listenToCh(
+    device: DmxOutputDevice,
+    channel: number,
+    cb: ValueCallback
+  ): () => void;
 };
 
 type InternalValues = {
-  [key in number]: Uint8Array;
+  [key in string]: Uint8Array;
 };
 
 const ValuesContext = createContext<ValuesType | undefined>(undefined);
 
-export const useDevices = (): number[] => {
+export const useDevices = (): DmxOutputDevice[] => {
   const valuesCtx = useContext(ValuesContext);
 
   if (valuesCtx === undefined) {
@@ -41,7 +48,7 @@ export const useDevices = (): number[] => {
 };
 
 export const useDeviceChannelValue = (
-  device: number,
+  device: DmxOutputDevice,
   channel: number
 ): number => {
   const [value, setValue] = useState(0);
@@ -61,14 +68,11 @@ export const useDeviceChannelValue = (
 export const ValuesProvider = ({
   children,
 }: React.PropsWithChildren<unknown>): JSX.Element => {
-  const [devices, setDevices] = useState<number[]>([]);
+  const [devices, setDevices] = useState<DmxOutputDevice[]>([]);
 
   useEffect(() => {
     const cb = (rawDevices: Devices): void => {
-      const devicesArr = [
-        ...rawDevices.outputs.linuxDMX,
-        ...(rawDevices.outputs.local ?? []),
-      ];
+      const devicesArr = [...rawDevices.dmxOutputs];
       if (!equals(devices, devicesArr)) {
         setDevices(devicesArr);
       }
@@ -80,12 +84,12 @@ export const ValuesProvider = ({
   }, [devices]);
 
   const listeners = useRef<
-    Array<{ device: number; channel: number; cb: ValueCallback }>
+    Array<{ device: DmxOutputDevice; channel: number; cb: ValueCallback }>
   >([]);
   const internalValues = useRef<InternalValues>({});
 
   const listenToCh = useCallback(
-    (device: number, channel: number, cb: ValueCallback) => {
+    (device: DmxOutputDevice, channel: number, cb: ValueCallback) => {
       const listener = { device, channel, cb };
 
       listeners.current.push(listener);
@@ -100,11 +104,11 @@ export const ValuesProvider = ({
         listeners.current = listeners.current.filter((l) => l !== listener);
       };
     },
-    [devices, listeners]
+    [listeners]
   );
 
   useEffect(() => {
-    const cb = (device: number, data: Uint8Array): void => {
+    const cb = (device: DmxOutputDevice, data: Uint8Array): void => {
       const currentValues = internalValues.current[device] || new Uint8Array();
 
       data.forEach((val, index) => {
@@ -127,7 +131,7 @@ export const ValuesProvider = ({
     };
   }, [internalValues, listeners]);
 
-  const value = useMemo(() => ({ devices, listenToCh }), [devices]);
+  const value = useMemo(() => ({ devices, listenToCh }), [devices, listenToCh]);
 
   return (
     <ValuesContext.Provider value={value}>{children}</ValuesContext.Provider>

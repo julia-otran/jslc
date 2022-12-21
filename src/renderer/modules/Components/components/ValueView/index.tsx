@@ -1,9 +1,12 @@
 import { CircularProgress, Stack, Typography } from '@mui/material';
 
-import { useDeviceChannelValue } from '../../../EngineIntegration';
+import {
+  useDeviceChannelValue,
+  DmxOutputDevice,
+} from '../../../EngineIntegration';
 
 interface Props {
-  device: number;
+  device: DmxOutputDevice;
   channel: number;
 }
 

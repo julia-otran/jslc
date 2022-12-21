@@ -3,5 +3,7 @@ export const ROUTER_PATHS_PARAMS = {
 };
 
 export const ROUTER_PATHS = {
+  CTRL_ROOT: '/ctrl',
   CTRL_PAGE: '/ctrl/:index',
+  IO_SETUP: '/io-setup',
 };

@@ -16,6 +16,7 @@
   "dependencies": {
     "@types/midi": "^2.0.0",
     "@types/node-localstorage": "^1.3.0",
+    "dmxnet": "^0.8.0",
     "midi": "^2.0.0",
     "node-localstorage": "^2.2.1"
   }
