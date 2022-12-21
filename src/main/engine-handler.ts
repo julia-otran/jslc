@@ -6,7 +6,6 @@ import { LocalStorage } from 'node-localstorage';
 
 import {
   EngineOutputMessageNames,
-  EngineRequestDevicesOutputMessage,
   EngineDevicesInputMessage,
   EngineInputMessageNames,
   EngineInputDataInputMessage,
@@ -85,26 +84,6 @@ registerMessageListener<EngineEnableInputOutputMessage>(
     });
   }
 );
-
-let logicalDevices: ReturnType<typeof getLogicalDevicesIds> | undefined;
-
-registerMessageListener<EngineRequestDevicesOutputMessage>(
-  EngineOutputMessageNames.REQUEST_DEVICES,
-  async (data) => {
-    logicalDevices = getLogicalDevicesIds();
-
-    const { requestId } = data;
-
-    sendMessage<EngineDevicesInputMessage>({
-      message: EngineInputMessageNames.DEVICES_FOUND,
-      data: {
-        ...logicalDevices,
-        requestId,
-      },
-    });
-  }
-);
-
 ipcMain.on('request-devices', () => {
   uiMessageDispatcher?.('devices-found', getLogicalDevicesIds());
 });
@@ -198,6 +177,17 @@ export const terminateEngine = (): Promise<void> => {
   return stopEngine().then(closeDevices);
 };
 
+addChangeLogicalDevicesCallback((info) => {
+  localStorage.setItem('IO', JSON.stringify(info));
+
+  uiMessageDispatcher?.('devices-found', getLogicalDevicesIds());
+
+  sendMessage<EngineDevicesInputMessage>({
+    message: EngineInputMessageNames.DEVICES_CHANGED,
+    data: getLogicalDevicesIds(),
+  });
+});
+
 const workerFile = app.isPackaged
   ? path.join(__dirname, 'engine.js')
   : path.join(__dirname, '../../erb/dll/engine.js');
@@ -212,11 +202,6 @@ const loadWorker = async () => {
   if (savedIOString) {
     setLogicalDevicesInfo(JSON.parse(savedIOString));
   }
-
-  addChangeLogicalDevicesCallback((info) => {
-    localStorage.setItem('IO', JSON.stringify(info));
-    uiMessageDispatcher?.('devices-found', getLogicalDevicesIds());
-  });
 
   worker = new Worker(workerFile);
 
@@ -236,7 +221,12 @@ const loadWorker = async () => {
 };
 
 export const restartEngine = async (): Promise<void> => {
-  return stopEngine().then(loadWorker);
+  return stopEngine()
+    .then(loadWorker)
+    .catch((e) => {
+      console.error(e);
+      throw e;
+    });
 };
 
 if (!app.isPackaged) {

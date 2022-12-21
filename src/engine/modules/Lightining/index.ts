@@ -1,5 +1,4 @@
 import {
-  addDevicesChangeCallback,
   createUniverse,
   Universe,
   setDefaultUniverse,
@@ -13,9 +12,10 @@ import {
   ProcessSaga,
   fork,
   roundRobinEffect,
+  isProcessing,
 } from '../Engine';
 
-import { reloadDevices, startEngine } from '../EngineAdapter';
+import { addDeviceChangeCallback, startEngine } from '../EngineAdapter';
 
 import { MixMode, InputDeviceId, ValueProvider } from '../../../engine-types';
 
@@ -672,7 +672,7 @@ const prepareScenes = () => {
   }
 };
 
-addDevicesChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
+addDeviceChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
   [midiInputId] = inputDeviceIds;
   console.log({ midiInputId });
 
@@ -681,16 +681,13 @@ addDevicesChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
     console.log('No output detected.');
   } else if (!universe) {
     console.log('Creating universes');
+
     universe = createUniverse(1, dmxOutputDeviceIds[0]);
     setDefaultUniverse(universe);
   }
-});
 
-reloadDevices()
-  .then(() => {
+  if (universe && !isProcessing()) {
     startEngine();
     prepareScenes();
-
-    return undefined;
-  })
-  .catch((e) => console.error(e));
+  }
+});

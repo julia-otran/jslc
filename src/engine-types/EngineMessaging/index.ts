@@ -1,7 +1,6 @@
 import { DMXData, LocalConnMessage, LocalConnValues } from '../Engine';
 
 export enum EngineOutputMessageNames {
-  REQUEST_DEVICES = 'request-devices',
   WRITE_TO_DEVICE = 'write-to-device',
   ENABLE_INPUT = 'enable-input',
   LOCAL_CONN = 'local-conn',
@@ -55,7 +54,6 @@ export interface EngineDevicesInputMessageData {
   dmxOutputs: string[];
   midiInputs: string[];
   dmxInputs: string[];
-  requestId: string;
 }
 
 export type EngineLocalConnInputMessageData = LocalConnMessage;

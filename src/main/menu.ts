@@ -54,6 +54,10 @@ export default class MenuBuilder {
     });
   }
 
+  setupIO(): void {
+    this.mainWindow.webContents.emit('navigate', 'io');
+  }
+
   buildDarwinTemplate(): MenuItemConstructorOptions[] {
     const subMenuAbout: DarwinMenuItemConstructorOptions = {
       label: 'Electron',
@@ -215,6 +219,13 @@ export default class MenuBuilder {
       {
         label: '&Engine',
         submenu: [
+          {
+            label: '&IO Setup',
+            accelerator: 'Ctrl+I+O',
+            click: () => {
+              this.setupIO();
+            },
+          },
           {
             label: '&Restart',
             accelerator: 'Ctrl+R',

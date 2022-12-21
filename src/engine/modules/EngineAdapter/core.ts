@@ -18,8 +18,18 @@ import {
   EngineState,
 } from '../../../engine-types';
 
-let engineState: EngineState | null | undefined = undefined;
+let engineState: EngineState | null | undefined;
 let shouldStartEngine = false;
+
+const beginEngine = () => {
+  const { localConnValues } = engineState || {};
+
+  if (localConnValues) {
+    importLocalConnValues(localConnValues);
+  }
+
+  startProcessing();
+};
 
 registerMessageListener<EngineInitInputMessage>(
   EngineInputMessageNames.INIT_ENGINE,
@@ -37,28 +47,23 @@ registerMessageListener<EngineInitInputMessage>(
   }
 );
 
-const beginEngine = () => {
-  const { localConnValues } = engineState || {};
-
-  if (localConnValues) {
-    importLocalConnValues(localConnValues);
-  }
-
-  startProcessing();
-};
-
+// eslint-disable-next-line import/prefer-default-export
 export const startEngine = (): void => {
   const stopMessageListener = () => {
     engineState = undefined;
 
-    stopProcessing().then(() => {
-      sendMessage<EngineStoppedOutputMessage>({
-        message: EngineOutputMessageNames.ENGINE_STOPPED,
-        data: {
-          localConnValues: exportLocalConnValues(),
-        },
-      });
-    });
+    stopProcessing()
+      .then(() => {
+        sendMessage<EngineStoppedOutputMessage>({
+          message: EngineOutputMessageNames.ENGINE_STOPPED,
+          data: {
+            localConnValues: exportLocalConnValues(),
+          },
+        });
+
+        return undefined;
+      })
+      .catch(console.error);
 
     unregisterMessageListener(EngineInputMessageNames.STOP_ENGINE);
   };

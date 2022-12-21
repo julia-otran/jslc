@@ -364,7 +364,7 @@ const reduceFunctions = (
     return inputDevicesData[inputDeviceId];
   };
 
-  let processOutput = fn.process.next({
+  const processOutput = fn.process.next({
     addProcess,
     stopProcess,
     cancelProcess,
@@ -401,7 +401,7 @@ const reduceFunctions = (
     .map((mixMap) => {
       const initialMixed = acc
         .filter(
-          ({ output }) => (output.universe.id = mixMap[0].output.universe.id)
+          ({ output }) => output.universe.id === mixMap[0].output.universe.id
         )
         .find(
           ({ output }) => output.channelMSB === mixMap[0].output.channelMSB
@@ -466,8 +466,8 @@ const processUniverses = (): DmxResults => {
   return results;
 };
 
-let isWriting: boolean = false;
-let writeFrames: number = 0;
+let isWriting = false;
+let writeFrames = 0;
 let lastWriteRunDate: Date = new Date();
 let writePromise: Promise<void> | undefined;
 
@@ -499,16 +499,18 @@ const writeDmxResults = async (results: DmxResults): Promise<void> => {
   ).then(() => {
     isWriting = false;
     writePromise = undefined;
+
+    return undefined;
   });
 };
 
 type RunFinishCallback = () => void;
 
 let process = false;
-let runFinishCallback: RunFinishCallback | undefined = undefined;
+let runFinishCallback: RunFinishCallback | undefined;
 
 export const startProcessing = async () => {
-  let errorCount: number = 0;
+  let errorCount = 0;
   process = true;
 
   let lastRunDate = new Date();
@@ -564,3 +566,5 @@ export const stopProcessing = (): Promise<void> => {
     }
   });
 };
+
+export const isProcessing = (): boolean => process;

@@ -2,7 +2,7 @@ import { ipcMain } from 'electron';
 import midi from 'midi';
 import { open, readdir, FileHandle } from 'fs/promises';
 import dmxlib from 'dmxnet';
-import { map, clone } from 'ramda';
+import { map, clone, equals } from 'ramda';
 
 export interface ArtNetInputAddress {
   subnet: number;
@@ -102,7 +102,7 @@ const writeToLinuxDMXOutputDevice = (
 const midiInputDevice = new midi.Input();
 const midiInputDevices: Record<string, midi.Input> = {};
 let midiInputPortMap: Record<string, number> = {};
-let openMidiInputPorts: string[];
+const openMidiInputPorts: string[] = [];
 
 const midiInputCallbacks: Record<string, InputCallback> = {};
 
@@ -291,23 +291,17 @@ export const removeChangeLogicalDevicesCallback = (
   );
 };
 
-export const setLogicalDevicesInfo = (newInfo: LogicalDevicesInfo): void => {
+const updateLogicalDevicesStatus = (): void => {
   const missingDevices: string[] = [];
-  let hasOutput = false;
 
-  logicalDevices.outputs.mockDMX = clone(newInfo.mockDMXOutputs);
-  hasOutput = hasOutput || logicalDevices.outputs.mockDMX.length > 0;
+  let hasOutput = logicalDevices.outputs.mockDMX.length > 0;
 
-  logicalDevices.outputs.linuxDMX = {};
-
-  Object.keys(newInfo.linuxDMXOutputs).forEach((deviceId) => {
-    const linuxDMXOutputDeviceId = newInfo.linuxDMXOutputs[deviceId];
+  Object.keys(logicalDevices.outputs.linuxDMX).forEach((deviceId) => {
+    const linuxDMXOutputDeviceId = logicalDevices.outputs.linuxDMX[deviceId];
 
     const openedLinuxDmxDevice = openedLinuxDmxDevices.find(
       (dev) => dev.id === linuxDMXOutputDeviceId
     );
-
-    logicalDevices.outputs.linuxDMX[deviceId] = linuxDMXOutputDeviceId;
 
     if (openedLinuxDmxDevice) {
       hasOutput = true;
@@ -316,21 +310,27 @@ export const setLogicalDevicesInfo = (newInfo: LogicalDevicesInfo): void => {
     }
   });
 
-  logicalDevices.inputs.midi = {};
-
-  Object.keys(newInfo.midiInputs).forEach((midiInputId) => {
-    const midiInputName = newInfo.midiInputs[midiInputId];
-
-    logicalDevices.inputs.midi[midiInputId] = midiInputName;
+  Object.keys(logicalDevices.inputs.midi).forEach((midiInputId) => {
+    const midiInputName = logicalDevices.inputs.midi[midiInputId];
 
     if (midiInputPortMap[midiInputName] === undefined) {
       missingDevices.push(midiInputId);
     }
   });
 
-  logicalDevices.inputs.artNet = clone(newInfo.artNetInputs);
-
   logicalDevices.status = { missingDevices, hasOutput };
+
+  changeLogicalDevicesCallbacks.forEach((cb) =>
+    cb(getLogicalDevicesInfo(), getLogicalDevicesStatus())
+  );
+};
+
+export const setLogicalDevicesInfo = (newInfo: LogicalDevicesInfo): void => {
+  logicalDevices.outputs.mockDMX = clone(newInfo.mockDMXOutputs);
+  logicalDevices.outputs.linuxDMX = clone(newInfo.linuxDMXOutputs);
+  logicalDevices.inputs.midi = clone(newInfo.midiInputs);
+  logicalDevices.inputs.artNet = clone(newInfo.artNetInputs);
+  updateLogicalDevicesStatus();
 };
 
 export const writeToDmxOutputDevice = async (
@@ -343,7 +343,7 @@ export const writeToDmxOutputDevice = async (
     try {
       await writeToLinuxDMXOutputDevice(linuxDMXDevice, dmxData);
     } catch (error) {
-      logicalDevices.status.missingDevices.push(deviceId);
+      updateLogicalDevicesStatus();
       throw error;
     }
 
@@ -391,46 +391,57 @@ export const closeDevices = (): Promise<void> => {
 };
 
 export const initDeviceBridge = async () => {
-  changeLogicalDevicesCallbacks = [];
   await findConnectedDevices();
 };
 
 // User Interface Messaging
 
-export interface ConnectedDevices {
-  inputs: {
-    midi: string[];
-  };
-  outputs: {
-    linuxDMX: string[];
+export interface IOState {
+  requestId: string;
+  info: LogicalDevicesInfo;
+  status: LogicalDevices['status'];
+  connectedDevices: {
+    inputs: {
+      midi: string[];
+    };
+    outputs: {
+      linuxDMX: string[];
+    };
   };
 }
 
-const replyIOState = (event: Electron.IpcMainEvent): void => {
-  const connectedDevices: ConnectedDevices = {
-    inputs: {
-      midi: Object.keys(midiInputPortMap),
-    },
-    outputs: {
-      linuxDMX: openedLinuxDmxDevices.map((d) => d.id.toString()),
+const replyIOState = (
+  event: Electron.IpcMainEvent,
+  requestId: unknown
+): void => {
+  const ioState: IOState = {
+    requestId: requestId as string,
+    info: getLogicalDevicesInfo(),
+    status: getLogicalDevicesStatus(),
+    connectedDevices: {
+      inputs: {
+        midi: Object.keys(midiInputPortMap),
+      },
+      outputs: {
+        linuxDMX: openedLinuxDmxDevices.map((d) => d.id.toString()),
+      },
     },
   };
 
-  event.reply('io-state', {
-    info: getLogicalDevicesInfo(),
-    status: getLogicalDevicesStatus(),
-    connectedDevices,
-  });
+  event.reply('io-state', ioState);
 };
 
-ipcMain.on('get-io-state', (event: Electron.IpcMainEvent): void => {
+ipcMain.on('get-io-state', (event: Electron.IpcMainEvent, requestId): void => {
   findConnectedDevices()
-    .then(() => replyIOState(event))
+    .then(() => replyIOState(event, requestId))
     .catch(console.error);
 });
 
-ipcMain.on('set-io', (event: Electron.IpcMainEvent, eventInfo): void => {
-  const logicalDevicesInfo = eventInfo as LogicalDevicesInfo;
-  setLogicalDevicesInfo(logicalDevicesInfo);
-  replyIOState(event);
-});
+ipcMain.on(
+  'set-io',
+  (event: Electron.IpcMainEvent, requestId, eventInfo): void => {
+    const logicalDevicesInfo = eventInfo as LogicalDevicesInfo;
+    setLogicalDevicesInfo(logicalDevicesInfo);
+    replyIOState(event, requestId);
+  }
+);

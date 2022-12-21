@@ -9,12 +9,13 @@ import {
   MemoryRouter as Router,
   Routes,
   Route,
-  Navigate,
+  useNavigate,
 } from 'react-router-dom';
 import { IntlProvider } from 'react-intl';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 
+import { useEffect } from 'react';
 import { Tabs } from './modules/Tabs';
 import { ROUTER_PATHS, ROUTER_PATHS_PARAMS } from './modules/Router';
 import { Index } from './modules/Index';
@@ -30,6 +31,28 @@ const darkTheme = createTheme({
   },
 });
 
+const MENU_ROUTE_MAP: Record<string, string> = {
+  io: ROUTER_PATHS.IO_SETUP,
+};
+
+const MenuRouterListener: React.FC = () => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const callback = (menuRoute: unknown) => {
+      const route = MENU_ROUTE_MAP[menuRoute as string];
+
+      if (route) {
+        navigate(route);
+      }
+    };
+
+    return window.electron.ipcRenderer.on('navigate', callback);
+  }, [navigate]);
+
+  return null;
+};
+
 export default function App() {
   return (
     <ThemeProvider theme={darkTheme}>
@@ -37,6 +60,8 @@ export default function App() {
       <IntlProvider locale="en-US" messages={IntlMessages['en-US']}>
         <ValuesProvider>
           <Router>
+            <MenuRouterListener />
+
             <Routes>
               <Route path={ROUTER_PATHS.IO_SETUP} element={<IOSetup />} />
               <Route

@@ -16,25 +16,10 @@ import {
   EngineInputMessageNames,
   EngineInputDataInputMessage,
   EngineOutputMessageNames,
-  EngineRequestDevicesOutputMessage,
   EngineWriteToDeviceDoneInputMessage,
   EngineWriteToDeviceOutputMessage,
 } from '../../../engine-types';
 import { registerMessageListener, sendMessage } from './messaging';
-
-type DeviceReloadCallback = ({
-  dmxOutputDeviceIds,
-  inputDeviceIds,
-}: {
-  dmxOutputDeviceIds: DmxOutputDeviceId[];
-  inputDeviceIds: InputDeviceId[];
-}) => void;
-type DeviceReloadRequestId = string;
-
-const deviceReloadCallbacks: Record<
-  DeviceReloadRequestId,
-  DeviceReloadCallback
-> = {};
 
 interface RegisteredInputDevices {
   midi: string[];
@@ -103,10 +88,32 @@ const writeToDevice = (
   });
 };
 
+type DeviceReloadCallback = ({
+  dmxOutputDeviceIds,
+  inputDeviceIds,
+}: {
+  dmxOutputDeviceIds: DmxOutputDeviceId[];
+  inputDeviceIds: InputDeviceId[];
+}) => void;
+
+let deviceChangeCallbacks: Array<DeviceReloadCallback> = [];
+
+export const addDeviceChangeCallback = (
+  callback: DeviceReloadCallback
+): void => {
+  deviceChangeCallbacks.push(callback);
+};
+
+export const removeDeviceChangeCallback = (
+  callback: DeviceReloadCallback
+): void => {
+  deviceChangeCallbacks = deviceChangeCallbacks.filter((cb) => cb !== callback);
+};
+
 registerMessageListener<EngineDevicesInputMessage>(
-  EngineInputMessageNames.DEVICES_FOUND,
+  EngineInputMessageNames.DEVICES_CHANGED,
   (deviceData) => {
-    const { dmxOutputs, dmxInputs, midiInputs, requestId } = deviceData;
+    const { dmxOutputs, dmxInputs, midiInputs } = deviceData;
     console.log('Engine received devices: ', deviceData);
 
     // Outputs
@@ -204,43 +211,18 @@ registerMessageListener<EngineDevicesInputMessage>(
       }
     });
 
-    deviceReloadCallbacks[requestId]?.({
-      dmxOutputDeviceIds: getDmxOutputDeviceIds(),
-      inputDeviceIds: getInputDeviceIds(),
-    });
-
-    delete deviceReloadCallbacks[requestId];
+    deviceChangeCallbacks.forEach((cb) =>
+      cb({
+        dmxOutputDeviceIds: getDmxOutputDeviceIds(),
+        inputDeviceIds: getInputDeviceIds(),
+      })
+    );
   }
 );
-
-// eslint-disable-next-line import/prefer-default-export
-export const reloadDevices = () =>
-  new Promise<{
-    dmxOutputDeviceIds: DmxOutputDeviceId[];
-    inputDeviceIds: InputDeviceId[];
-  }>((resolve) => {
-    const requestId = uuidV4();
-
-    deviceReloadCallbacks[requestId] = ({
-      dmxOutputDeviceIds,
-      inputDeviceIds,
-    }) => {
-      resolve({ dmxOutputDeviceIds, inputDeviceIds });
-    };
-
-    sendMessage<EngineRequestDevicesOutputMessage>({
-      message: EngineOutputMessageNames.REQUEST_DEVICES,
-      data: { requestId },
-    });
-  });
 
 registerMessageListener<EngineWriteToDeviceDoneInputMessage>(
   EngineInputMessageNames.WRITE_TO_DEVICE_DONE,
   (data) => {
-    if (!data.success) {
-      reloadDevices();
-    }
-
     const cb: WriteCallback | undefined = writeCallbacks[data.requestId];
 
     if (cb) {
