@@ -32,7 +32,7 @@ const logicalDevices: LogicalDevices = {
 // Linux DMX Outputs ------------------
 
 const getDevId = (devicePath: string): number =>
-  parseInt(devicePath.replace('dmx', ''));
+  parseInt(devicePath.replace('dmx', ''), 10);
 
 interface OpenLinuxDmxDevice {
   path: string;

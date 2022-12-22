@@ -8,3 +8,5 @@ export const useIsIOConfigured = (): boolean | undefined => {
     ? io.status.hasOutput && io.status.missingDevices.length === 0
     : undefined;
 };
+
+export { useIOSetup };
