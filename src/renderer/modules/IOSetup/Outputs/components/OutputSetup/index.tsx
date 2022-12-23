@@ -55,7 +55,7 @@ const OutputSetup: React.FC<OutputSetupProps> = ({
           <Select
             labelId={`output-${index}-type`}
             inputProps={register(`outputs.${index}.type`)}
-            defaultValue=""
+            defaultValue={outputType}
           >
             <MenuItem value="LINUX_DMX">Linux DMX</MenuItem>
             <MenuItem value="MOCK_DMX">Fake DMX Output</MenuItem>
@@ -70,7 +70,7 @@ const OutputSetup: React.FC<OutputSetupProps> = ({
             <Select
               labelId={`output-${index}-linux-dmx-device`}
               inputProps={register(`outputs.${index}.device`)}
-              defaultValue=""
+              defaultValue={linuxDmxSelectedDevice || ''}
             >
               {isLinuxDmxDeviceOffline && (
                 <MenuItem value={linuxDmxSelectedDevice}>
@@ -78,7 +78,12 @@ const OutputSetup: React.FC<OutputSetupProps> = ({
                 </MenuItem>
               )}
               {connectedLinuxDmxOutputs.map((deviceNumber) => (
-                <MenuItem value={deviceNumber}>{deviceNumber}</MenuItem>
+                <MenuItem
+                  key={`linux-dmx-${deviceNumber}`}
+                  value={deviceNumber}
+                >
+                  {deviceNumber}
+                </MenuItem>
               ))}
             </Select>
           </FormControl>

@@ -1,32 +1,47 @@
-import React, { useState, useCallback } from 'react';
-import { Tabs as MuiTabs, Tab } from '@mui/material';
-import { useIntl } from 'react-intl';
+import { useCallback } from 'react';
+import { CircularProgress } from '@mui/material';
+import { useNavigate, useLocation, To } from 'react-router-dom';
 
-import { Inputs } from '../Inputs';
-import { Outputs } from '../Outputs';
+import { useIOSetup } from '../hooks';
+import { IOStateInfo } from '../../EngineIntegration';
+import IOSetupForm from '../components/Form';
 
 const IOSetup = (): JSX.Element => {
-  const { formatMessage } = useIntl();
+  const navigate = useNavigate();
+  const { state: locationState } = useLocation();
+  const { backUrl } = (locationState as { backUrl: string } | undefined) || {
+    backUrl: -1,
+  };
 
-  const [tab, setTab] = useState<string>('outputs');
+  const [ioState, setIoStateInfo, refreshIO] = useIOSetup();
 
-  const handleChange = useCallback(
-    (_: React.SyntheticEvent, newValue: string): void => {
-      setTab(newValue);
+  const navigateBack = useCallback(() => {
+    if (typeof backUrl === 'number') {
+      navigate(backUrl as number);
+    } else {
+      navigate(backUrl as To);
+    }
+  }, [navigate, backUrl]);
+
+  const onSubmit = useCallback(
+    (data: IOStateInfo) => {
+      setIoStateInfo(data);
+      navigateBack();
     },
-    []
+    [setIoStateInfo, navigateBack]
   );
 
-  return (
-    <>
-      <MuiTabs value={tab} onChange={handleChange}>
-        <Tab value="outputs" label={formatMessage({ id: 'outputs' })} />
-        <Tab value="inputs" label={formatMessage({ id: 'inputs' })} />
-      </MuiTabs>
+  if (ioState === undefined) {
+    return <CircularProgress />;
+  }
 
-      {tab === 'outputs' && <Outputs />}
-      {tab === 'inputs' && <Inputs />}
-    </>
+  return (
+    <IOSetupForm
+      onSubmit={onSubmit}
+      onCancel={navigateBack}
+      onRefresh={refreshIO}
+      ioState={ioState}
+    />
   );
 };
 

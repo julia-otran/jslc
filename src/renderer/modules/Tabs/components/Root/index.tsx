@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Tabs as MuiTabs, Tab } from '@mui/material';
 import { useIntl } from 'react-intl';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Outlet } from 'react-router-dom';
 
 import { ROUTER_PATHS_PARAMS } from '../../../Router';
 
@@ -10,11 +10,7 @@ interface Props {
   pageCount: number;
 }
 
-const Tabs = ({
-  onChange,
-  pageCount,
-  children,
-}: React.PropsWithChildren<Props>): JSX.Element => {
+const Tabs = ({ onChange, pageCount }: Props): JSX.Element => {
   const { formatMessage } = useIntl();
 
   const [tab, setTab] = useState<string>(ROUTER_PATHS_PARAMS.CTRL_PAGE(0));
@@ -56,7 +52,7 @@ const Tabs = ({
           />
         ))}
       </MuiTabs>
-      {children}
+      <Outlet />
     </>
   );
 };

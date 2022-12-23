@@ -5,7 +5,7 @@ import { ROUTER_PATHS } from '../../Router';
 import { useIsIOConfigured } from '../../IOSetup';
 
 const Root = (): JSX.Element => {
-  const isIOConfigured = useIsIOConfigured() && undefined;
+  const isIOConfigured = useIsIOConfigured();
 
   return (
     <>

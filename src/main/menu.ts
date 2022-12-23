@@ -55,7 +55,7 @@ export default class MenuBuilder {
   }
 
   setupIO(): void {
-    this.mainWindow.webContents.emit('navigate', 'io');
+    this.mainWindow.webContents.send('navigate', 'io');
   }
 
   buildDarwinTemplate(): MenuItemConstructorOptions[] {

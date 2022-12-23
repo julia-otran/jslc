@@ -20,6 +20,7 @@ import { addDeviceChangeCallback, startEngine } from '../EngineAdapter';
 import { MixMode, InputDeviceId, ValueProvider } from '../../../engine-types';
 
 let midiInputId: InputDeviceId | undefined;
+let artNetInId: InputDeviceId | undefined;
 
 const getScanCh = (scanNumber: number): number => (scanNumber - 1) * 16 + 1;
 
@@ -673,8 +674,9 @@ const prepareScenes = () => {
 };
 
 addDeviceChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
-  [midiInputId] = inputDeviceIds;
-  console.log({ midiInputId });
+  midiInputId = inputDeviceIds.find((d) => d === 'LASER_CTRL_IN');
+  artNetInId = inputDeviceIds.find((d) => d === 'ART_NET_INPUT_1');
+  console.log({ midiInputId, artNetInId });
 
   // Add "mock" device if none
   if (dmxOutputDeviceIds.length <= 0) {

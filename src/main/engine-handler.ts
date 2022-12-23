@@ -197,12 +197,6 @@ const loadWorker = async () => {
 
   await initDeviceBridge();
 
-  const savedIOString = localStorage.getItem('IO');
-
-  if (savedIOString) {
-    setLogicalDevicesInfo(JSON.parse(savedIOString));
-  }
-
   worker = new Worker(workerFile);
 
   worker.on('message', (message) => {
@@ -218,6 +212,12 @@ const loadWorker = async () => {
     message: EngineInputMessageNames.INIT_ENGINE,
     data: JSON.parse(localStorage.getItem('ENGINE_STATE') || '{}'),
   });
+
+  const savedIOString = localStorage.getItem('IO');
+
+  if (savedIOString) {
+    setLogicalDevicesInfo(JSON.parse(savedIOString));
+  }
 };
 
 export const restartEngine = async (): Promise<void> => {

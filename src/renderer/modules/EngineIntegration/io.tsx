@@ -130,10 +130,18 @@ const fromUiToEngine = (ioState: IOStateInfo): IOStateIn['info'] => ({
   ),
 });
 
-export type UseIOSetup = [IOState | undefined, (info: IOStateInfo) => void];
+export type UseIOSetup = [
+  IOState | undefined,
+  (info: IOStateInfo) => void,
+  () => void
+];
 
 export const useIOSetup = (): UseIOSetup => {
   const [ioState, setIOState] = useState<IOState | undefined>(undefined);
+
+  const refreshDevices = useCallback(() => {
+    window.electron.ipcRenderer.getIOState(uuidV4());
+  }, []);
 
   useEffect(() => {
     const callback = (ioStateInRaw: unknown): void => {
@@ -142,14 +150,14 @@ export const useIOSetup = (): UseIOSetup => {
 
     const deregister = window.electron.ipcRenderer.on('io-state', callback);
 
-    window.electron.ipcRenderer.getIOState(uuidV4());
+    refreshDevices();
 
     return deregister;
-  }, []);
+  }, [refreshDevices]);
 
   const setInfo = useCallback((newInfo: IOStateInfo) => {
     window.electron.ipcRenderer.setIO(uuidV4(), fromUiToEngine(newInfo));
   }, []);
 
-  return [ioState, setInfo];
+  return [ioState, setInfo, refreshDevices];
 };
