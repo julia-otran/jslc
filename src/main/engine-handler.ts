@@ -1,33 +1,32 @@
-import { app, ipcMain } from 'electron';
-import path from 'path';
-import { Worker } from 'node:worker_threads';
-import fs from 'fs';
-import { LocalStorage } from 'node-localstorage';
-
 import {
-  EngineOutputMessageNames,
   EngineDevicesInputMessage,
-  EngineInputMessageNames,
+  EngineEnableInputOutputMessage,
   EngineInputDataInputMessage,
+  EngineInputMessage,
+  EngineInputMessageNames,
+  EngineLocalConnInputMessage,
+  EngineLocalConnOutputMessage,
+  EngineLocalConnRequestValueInputMessage,
+  EngineOutputMessage,
+  EngineOutputMessageNames,
   EngineWriteToDeviceDoneInputMessage,
   EngineWriteToDeviceOutputMessage,
-  EngineEnableInputOutputMessage,
-  EngineInputMessage,
-  EngineOutputMessage,
-  EngineLocalConnOutputMessage,
-  EngineLocalConnInputMessage,
-  EngineLocalConnRequestValueInputMessage,
 } from '../engine-types';
-
 import {
-  writeToDmxOutputDevice,
-  openInput,
-  getLogicalDevicesIds,
-  closeDevices,
-  setLogicalDevicesInfo,
-  initDeviceBridge,
   addChangeLogicalDevicesCallback,
+  closeDevices,
+  getLogicalDevicesIds,
+  initDeviceBridge,
+  openInput,
+  setLogicalDevicesInfo,
+  writeToDmxOutputDevice,
 } from './devices-bridge';
+import { app, ipcMain } from 'electron';
+
+import { LocalStorage } from 'node-localstorage';
+import { Worker } from 'node:worker_threads';
+import fs from 'fs';
+import path from 'path';
 
 // TODO: Fix this when turning platform portable
 // However, we don't even support windows or osx drivers.

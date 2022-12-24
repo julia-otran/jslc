@@ -1,1 +1,1 @@
-{"mockDMXOutputs":["FAKE_DMX_OUT_1"],"linuxDMXOutputs":{},"midiInputs":{"LASER_CTRL_IN":"MIDI Out:out 129:0"},"artNetInputs":{"ART_NET_INPUT_1":{"subnet":0,"net":"0"}}}
+{"mockDMXOutputs":["FAKE_DMX_OUT_1"],"linuxDMXOutputs":{},"midiInputs":{"LASER_CTRL_IN":"Midi Through:Midi Through Port-0 14:0"},"artNetInputs":{"ART_NET_INPUT_1":{"subnet":0,"net":"0","universe":0}}}

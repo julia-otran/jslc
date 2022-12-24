@@ -20,3 +20,4 @@ export * from './frame-generator';
 export * from './midi-synth';
 export * from './local-conn';
 export * from './effects';
+export * from './dmx-forward';

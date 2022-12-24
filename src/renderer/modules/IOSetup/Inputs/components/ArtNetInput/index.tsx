@@ -1,15 +1,16 @@
-import { useFormContext } from 'react-hook-form';
 import {
+  Box,
+  Button,
   FormControl,
   InputLabel,
-  TextField,
-  Stack,
-  Select,
   MenuItem,
-  Button,
-  Box,
+  Select,
+  Stack,
+  TextField,
 } from '@mui/material';
-import { IOStateInfo, IOState } from '../../../../EngineIntegration';
+import { IOState, IOStateInfo } from '../../../../EngineIntegration';
+
+import { useFormContext } from 'react-hook-form';
 
 interface ArtNetInputProps {
   index: number;
@@ -24,7 +25,10 @@ const ART_NET_UNIVERSES = Array(16)
   .map((_, index) => index);
 
 const ArtNetInput: React.FC<ArtNetInputProps> = ({ index }) => {
-  const { register } = useFormContext<IOStateInfo>();
+  const { register, watch } = useFormContext<IOStateInfo>();
+
+  const currentSubnet = watch(`inputs.${index}.subnet`);
+  const currentUniverse = watch(`inputs.${index}.universe`);
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -32,7 +36,7 @@ const ArtNetInput: React.FC<ArtNetInputProps> = ({ index }) => {
         <Select
           label="Subnet"
           inputProps={register(`inputs.${index}.subnet`)}
-          defaultValue={0}
+          defaultValue={currentSubnet}
         >
           {ART_NET_SUBNETS.map((subnet) => (
             <MenuItem key={`subnet-${subnet}`} value={subnet}>
@@ -52,8 +56,8 @@ const ArtNetInput: React.FC<ArtNetInputProps> = ({ index }) => {
       <FormControl sx={{ flex: '1', marginLeft: '16px' }}>
         <Select
           label="Universe"
-          inputProps={register(`outputs.${index}.device`)}
-          defaultValue={0}
+          inputProps={register(`inputs.${index}.universe`)}
+          defaultValue={currentUniverse}
         >
           {ART_NET_UNIVERSES.map((universe) => (
             <MenuItem key={`universe-${universe}`} value={universe}>

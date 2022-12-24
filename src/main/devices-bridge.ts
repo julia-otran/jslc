@@ -1,8 +1,9 @@
+import { FileHandle, open, readdir } from 'fs/promises';
+import { clone, equals, map } from 'ramda';
+
+import dmxlib from 'dmxnet';
 import { ipcMain } from 'electron';
 import midi from 'midi';
-import { open, readdir, FileHandle } from 'fs/promises';
-import dmxlib from 'dmxnet';
-import { map, clone, equals } from 'ramda';
 
 export interface ArtNetInputAddress {
   subnet: number;
@@ -204,11 +205,19 @@ const internalOpenArtNetInput = (
     const receiver = dmxnet.newReceiver({ subnet, net, universe });
     artNetReceivers[artNetInputId] = receiver;
 
+    let prevData: unknown;
+
     artNetReceivers[artNetInputId].on('data', (data) => {
-      if (artNetReceiverCallbacks[artNetInputId]) {
-        artNetReceiverCallbacks[artNetInputId](data);
+      if (!equals(prevData, data)) {
+        prevData = data;
+
+        if (artNetReceiverCallbacks[artNetInputId]) {
+          artNetReceiverCallbacks[artNetInputId](data);
+        }
       }
     });
+  } else {
+    callback(new Uint8Array(artNetReceivers[artNetInputId].values));
   }
 };
 
@@ -361,7 +370,7 @@ export const writeToDmxOutputDevice = async (
 
 export const openInput = (inputId: string, callback: InputCallback): void => {
   if (
-    logicalDevices.status.missingDevices.find((d) => d === inputId) ===
+    logicalDevices.status.missingDevices.find((d) => d === inputId) !==
     undefined
   ) {
     return undefined;

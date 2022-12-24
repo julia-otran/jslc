@@ -1,25 +1,25 @@
-import { v4 as uuidV4 } from 'uuid';
 import {
-  registerDmxOutputDevice,
-  unregisterDmxOutputDevice,
-  getDmxOutputDeviceIds,
-  getInputDeviceIds,
-  registerInputDevice,
-  unregisterInputDevice,
-} from '../Engine';
-
-import {
-  DmxOutputDeviceId,
-  InputDeviceId,
   DMXData,
+  DmxOutputDeviceId,
   EngineDevicesInputMessage,
-  EngineInputMessageNames,
   EngineInputDataInputMessage,
+  EngineInputMessageNames,
   EngineOutputMessageNames,
   EngineWriteToDeviceDoneInputMessage,
   EngineWriteToDeviceOutputMessage,
+  InputDeviceId,
 } from '../../../engine-types';
+import {
+  getDmxOutputDeviceIds,
+  getInputDeviceIds,
+  registerDmxOutputDevice,
+  registerInputDevice,
+  unregisterDmxOutputDevice,
+  unregisterInputDevice,
+} from '../Engine';
 import { registerMessageListener, sendMessage } from './messaging';
+
+import { v4 as uuidV4 } from 'uuid';
 
 interface RegisteredInputDevices {
   midi: string[];
@@ -202,7 +202,7 @@ registerMessageListener<EngineDevicesInputMessage>(
     });
 
     registeredInputDevices.dmx.forEach((inputId) => {
-      if (midiInputs.find((d) => d === inputId) === undefined) {
+      if (dmxInputs.find((d) => d === inputId) === undefined) {
         unregisterInputDevice(inputId);
 
         registeredInputDevices.dmx = registeredInputDevices.dmx.filter(

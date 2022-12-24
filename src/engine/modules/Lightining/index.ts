@@ -1,23 +1,23 @@
 import {
-  createUniverse,
-  Universe,
-  setDefaultUniverse,
-  addGenerator,
   ChannelGroup,
-  notesToChannelsMidiSynth,
-  fixedVelocityToDmxValue,
-  keepValue,
-  getValueProvider,
-  getRawValueProvider,
   ProcessSaga,
+  Universe,
+  addGenerator,
+  createUniverse,
+  defaultChannelMappingFromTo,
+  fixedVelocityToDmxValue,
   fork,
-  roundRobinEffect,
+  forwardDmxInput,
+  getRawValueProvider,
+  getValueProvider,
   isProcessing,
+  keepValue,
+  notesToChannelsMidiSynth,
+  roundRobinEffect,
+  setDefaultUniverse,
 } from '../Engine';
-
+import { InputDeviceId, MixMode, ValueProvider } from '../../../engine-types';
 import { addDeviceChangeCallback, startEngine } from '../EngineAdapter';
-
-import { MixMode, InputDeviceId, ValueProvider } from '../../../engine-types';
 
 let midiInputId: InputDeviceId | undefined;
 let artNetInId: InputDeviceId | undefined;
@@ -668,6 +668,17 @@ const prepareScenes = () => {
             mixMode: MixMode.AVERAGE,
           },
         ],
+      })
+    );
+  }
+
+  if (artNetInId) {
+    addGenerator(
+      forwardDmxInput({
+        inputDeviceId: artNetInId,
+        channelMappingFromTo: defaultChannelMappingFromTo(1, 16),
+        weightProvider: () => 1,
+        mixMode: MixMode.GREATER_PRIORITY,
       })
     );
   }
