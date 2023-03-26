@@ -3,6 +3,7 @@ import {
   DmxOutputDeviceId,
   EngineDevicesInputMessage,
   EngineInputDataInputMessage,
+  EngineInputDataInputMessageData,
   EngineInputMessageNames,
   EngineOutputMessageNames,
   EngineWriteToDeviceDoneInputMessage,
@@ -29,18 +30,18 @@ interface RegisteredInputDevices {
 let registeredDmxOutputDevices: DmxOutputDeviceId[] = [];
 const registeredInputDevices: RegisteredInputDevices = { midi: [], dmx: [] };
 
-const inputQueue: Record<string, Array<any>> = {};
+const inputQueue: Record<string, Array<EngineInputDataInputMessageData>> = {};
 
 registerMessageListener<EngineInputDataInputMessage>(
   EngineInputMessageNames.INPUT_DATA,
   (message) => {
-    const { inputId, ...other } = message;
+    const { inputId } = message;
 
     if (inputQueue[inputId] === undefined) {
       inputQueue[inputId] = [];
     }
 
-    inputQueue[inputId].push(other);
+    inputQueue[inputId].push(message);
   }
 );
 

@@ -1,9 +1,10 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Tabs as MuiTabs, Tab } from '@mui/material';
-import { useIntl } from 'react-intl';
-import { useNavigate, Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ROUTER_PATHS_PARAMS } from '../../../Router';
+import { useIntl } from 'react-intl';
+import { useLocalConn } from '../../../EngineIntegration';
 
 interface Props {
   onChange?(route: string): void;
@@ -24,6 +25,14 @@ const Tabs = ({ onChange, pageCount }: Props): JSX.Element => {
     },
     [onChange]
   );
+
+  const [tabNumber] = useLocalConn('control-page');
+
+  useEffect(() => {
+    if (tabNumber !== undefined && tabNumber <= pageCount) {
+      setTab(ROUTER_PATHS_PARAMS.CTRL_PAGE(tabNumber));
+    }
+  }, [tabNumber, pageCount]);
 
   useEffect(() => {
     navigate(tab);

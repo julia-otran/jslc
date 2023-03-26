@@ -75,10 +75,10 @@ registerMessageListener<EngineEnableInputOutputMessage>(
   (msg) => {
     const { inputId } = msg;
 
-    openInput(inputId, (message, deltaTime) => {
+    openInput(inputId, (message, messageTimestamp, deltaTime) => {
       sendMessage<EngineInputDataInputMessage>({
         message: EngineInputMessageNames.INPUT_DATA,
-        data: { inputId, deltaTime, message },
+        data: { inputId, deltaTime, message, messageTimestamp },
       });
     });
   }

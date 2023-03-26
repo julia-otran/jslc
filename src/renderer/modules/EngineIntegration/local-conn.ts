@@ -1,10 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-
 import {
   EngineInputMessageNames,
   EngineLocalConnInputMessageData,
   EngineLocalConnOutputMessageData,
 } from '../../../engine-types';
+import { useCallback, useEffect, useState } from 'react';
 
 type LocalConnListenerFn = (value: number) => void;
 

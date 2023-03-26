@@ -33,3 +33,8 @@ export const validateDMXValue = (v: DMXValue): void => {
     throw new Error(`Value ${v} is not integer.`);
   }
 };
+
+export type MidiMessage = {
+  deltaTime: string;
+  message: number[];
+};

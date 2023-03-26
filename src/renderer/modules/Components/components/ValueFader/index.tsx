@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
-import { Stack, Slider, Typography } from '@mui/material';
+import { Slider, Stack, Typography } from '@mui/material';
 
+import { useCallback } from 'react';
 import { useLocalConn } from '../../../EngineIntegration';
 
 export interface ValueFaderProps {
@@ -56,7 +56,7 @@ export const ValueFader = ({
       />
 
       <Typography variant="body2" sx={{ fontSize: '12px' }}>
-        Val: {value ?? ''}
+        Val: {(value && Math.round(value)) ?? ''}
       </Typography>
     </Stack>
   );

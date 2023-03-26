@@ -1,44 +1,24 @@
+import { Button, Slider, Stack, Typography } from '@mui/material';
+import {
+  MAX_MS_PER_BEAT,
+  createBPMTapper,
+  msToBpm,
+} from '../../../../../engine-types';
 import { useCallback, useRef } from 'react';
-import { Stack, Slider, Button, Typography } from '@mui/material';
 
 import { useLocalConn } from '../../../EngineIntegration';
 
-const MIN_BPM = 35;
-const MAX_MS_PER_BEAT = (1 / MIN_BPM) * 60 * 1000;
-
-const msToBpm = (ms: number) => 1 / (ms / (60 * 1000));
-const bpmToMs = (bpm: number) => (1 / bpm) * 60 * 1000;
-
-const getBPM = (times: number[]): number => {
-  if (times.length <= 1) {
-    return 0;
-  }
-
-  let bpmSum = 0;
-
-  for (let i = 0; i < times.length - 1; i++) {
-    const bpm = msToBpm(times[i + 1] - times[i]);
-    const roundedBPM = Math.round(bpm * 2) / 2;
-    bpmSum += roundedBPM;
-  }
-
-  const bpmAverage = bpmSum / (times.length - 1);
-  const roundedBPM = Math.round(bpmAverage * 2) / 2;
-
-  return bpmToMs(roundedBPM);
-};
-
 export interface BPMTapperProps {
   connectorKey: string;
-  title?: string | undefined;
+  title?: string;
 }
 
 export const BPMTapper = ({
   connectorKey,
-  title,
+  title = undefined,
 }: BPMTapperProps): JSX.Element => {
   const [value, setValue] = useLocalConn(connectorKey);
-  const lastTapsRef = useRef<number[]>([]);
+  const bpmTapRef = useRef(createBPMTapper());
 
   const handleChange = useCallback(
     (event: Event, newValue: number | number[]) => {
@@ -50,26 +30,12 @@ export const BPMTapper = ({
   );
 
   const handleTap = useCallback(() => {
-    const now = new Date().getTime();
+    const result = bpmTapRef.current.onTap();
 
-    if (lastTapsRef.current.length === 0) {
-      lastTapsRef.current.push(now);
-    } else if (
-      now - lastTapsRef.current[lastTapsRef.current.length - 1] <=
-      MAX_MS_PER_BEAT
-    ) {
-      lastTapsRef.current.push(now);
-
-      if (lastTapsRef.current.length > 8) {
-        const [_, ...pluck] = lastTapsRef.current;
-        lastTapsRef.current = pluck;
-      }
-
-      setValue(getBPM(lastTapsRef.current));
-    } else {
-      lastTapsRef.current = [now];
+    if (result !== undefined) {
+      setValue(result);
     }
-  }, [lastTapsRef, setValue]);
+  }, [bpmTapRef, setValue]);
 
   return (
     <Stack

@@ -91,6 +91,7 @@ export interface EngineInputDataInputMessageData {
   inputId: string;
   message: number[];
   deltaTime?: string | undefined;
+  messageTimestamp: number;
 }
 
 export type EngineInputDataInputMessage = EngineInputMessage<

@@ -1,7 +1,7 @@
 import {
-  ValueProvider,
   LocalConnMessage,
   LocalConnValues,
+  ValueProvider,
 } from '../../../engine-types';
 
 export type LocalConnCallback = (message: LocalConnMessage) => void;
@@ -16,7 +16,7 @@ export const removeLocalConnSender = (sender: LocalConnCallback): void => {
   localConnSenders = localConnSenders.filter((s) => s !== sender);
 };
 
-let localConnValues: LocalConnValues = {};
+const localConnValues: LocalConnValues = {};
 
 export const exportLocalConnValues = (): LocalConnValues => {
   const data: LocalConnValues = {};
@@ -28,18 +28,18 @@ export const exportLocalConnValues = (): LocalConnValues => {
   return data;
 };
 
-export const importLocalConnValues = (data: LocalConnValues): void => {
-  Object.keys(data).forEach((key) => {
-    sendRawLocalConnValue(key, data[key]);
-  });
-};
-
 export const sendRawLocalConnValue = (
   connectorKey: string,
   value: number
 ): void => {
   localConnValues[connectorKey] = value;
   localConnSenders.forEach((s) => s({ connectorKey, value }));
+};
+
+export const importLocalConnValues = (data: LocalConnValues): void => {
+  Object.keys(data).forEach((key) => {
+    sendRawLocalConnValue(key, data[key]);
+  });
 };
 
 export const sendLocalConnValue = (

@@ -28,3 +28,19 @@ export const valueToChannelValue = (value: number): ChannelValue => {
 
   return { valueMSB, valueLSB };
 };
+
+export const scaleValue = (
+  input: number,
+  inputMin: number,
+  inputMax: number,
+  outputMin: number,
+  outputMax: number
+): number => {
+  const inputRange = inputMax - inputMin;
+  const inputPercent = (input - inputMin) / inputRange;
+
+  const outputRange = outputMax - outputMin;
+  const outputPercent = inputPercent * outputRange;
+
+  return outputPercent + outputMin;
+};

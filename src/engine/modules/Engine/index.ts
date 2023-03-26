@@ -21,3 +21,4 @@ export * from './midi-synth';
 export * from './local-conn';
 export * from './effects';
 export * from './dmx-forward';
+export * from './midi-control';

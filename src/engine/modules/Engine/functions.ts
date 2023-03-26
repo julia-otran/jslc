@@ -1,19 +1,20 @@
 import {
-  ValueProvider,
-  Task,
   ChannelValue,
   MixMode,
+  Task,
+  ValueProvider,
 } from '../../../engine-types';
-import { ChannelGroup } from './channel-group';
 import {
   ProcessSaga,
+  cancel,
+  fork,
   isPaused,
+  isStopped,
   pushValues,
   waitNextFrame,
-  isStopped,
-  fork,
-  cancel,
 } from './frame-generator';
+
+import { ChannelGroup } from './channel-group';
 
 export interface TimedTransitionParams {
   startValue?: ValueProvider;
@@ -40,14 +41,14 @@ export const timedTransition = function* ({
 
   output = yield startValue();
 
-  let elapsedTime: number = 0;
+  let elapsedTime = 0;
   let prevTime = initialTime || new Date().getTime();
 
   do {
     const deltaVal = endValue() - startValue();
     const step = deltaVal / durationMs();
 
-    let currentTime = new Date().getTime();
+    const currentTime = new Date().getTime();
 
     if (output.isPaused) {
       prevTime = currentTime;
@@ -248,11 +249,11 @@ export const fadeInWithOutByWeight = function* ({
 }: FadeInWithOutByWeightParams): ProcessSaga {
   let internalWeight = 0;
 
-  let weightCb = (w: number) => {
+  const weightCb = (w: number) => {
     internalWeight = w;
   };
 
-  let weightProviderInt = (): number =>
+  const weightProviderInt = (): number =>
     internalWeight * (weightProvider?.() ?? 1);
 
   const keepValuesTask: Task = yield fork(

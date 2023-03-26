@@ -86,6 +86,8 @@ const writeToLinuxDMXOutputDevice = (
         return undefined;
       })
       .catch((error) => {
+        console.error(error);
+
         device.handle.close();
 
         openedLinuxDmxDevices = openedLinuxDmxDevices.filter(
@@ -104,11 +106,13 @@ const midiInputDevice = new midi.Input();
 const midiInputDevices: Record<string, midi.Input> = {};
 let midiInputPortMap: Record<string, number> = {};
 const openMidiInputPorts: string[] = [];
+const midiEventTimeMap: Record<string, number> = {};
 
 const midiInputCallbacks: Record<string, InputCallback> = {};
 
 export type InputCallback = (
   message: any,
+  messageTimestamp: number,
   deltaTime?: string | undefined
 ) => void;
 
@@ -135,10 +139,29 @@ const internalOpenMidiInput = (
     input.openPort(midiInputPortMap[midiInputName]);
 
     input.on('message', (deltaTime, message) => {
-      console.log({ message, deltaTime });
+      if (deltaTime === 0) {
+        midiEventTimeMap[midiInputName] = new Date().getTime();
+      } else if (midiEventTimeMap[midiInputName] === undefined) {
+        midiEventTimeMap[midiInputName] =
+          new Date().getTime() - deltaTime * 1000;
+      } else {
+        midiEventTimeMap[midiInputName] += deltaTime * 1000;
+      }
+
+      if (process.env.DEBUG_MIDI === 'true') {
+        console.log({
+          message,
+          deltaTime,
+          eventTime: midiEventTimeMap[midiInputName],
+        });
+      }
 
       if (midiInputCallbacks[midiInputName]) {
-        midiInputCallbacks[midiInputName](message, deltaTime.toString());
+        midiInputCallbacks[midiInputName](
+          message,
+          midiEventTimeMap[midiInputName],
+          deltaTime.toString()
+        );
       }
     });
   }
@@ -184,7 +207,10 @@ const dmxnet = new dmxlib.dmxnet({
 
 // ArtNet Input Devices ----------------
 type ArtNetInputDevice = dmxlib.receiver;
-type ArtNetInputCallback = (dmxData: Uint8Array) => void;
+type ArtNetInputCallback = (
+  dmxData: Uint8Array,
+  messageTimestamp: number
+) => void;
 
 const artNetReceivers: Record<number, ArtNetInputDevice> = {};
 const artNetReceiverCallbacks: Record<number, ArtNetInputCallback> = {};
@@ -212,12 +238,15 @@ const internalOpenArtNetInput = (
         prevData = data;
 
         if (artNetReceiverCallbacks[artNetInputId]) {
-          artNetReceiverCallbacks[artNetInputId](data);
+          artNetReceiverCallbacks[artNetInputId](data, new Date().getTime());
         }
       }
     });
   } else {
-    callback(new Uint8Array(artNetReceivers[artNetInputId].values));
+    callback(
+      new Uint8Array(artNetReceivers[artNetInputId].values),
+      new Date().getTime()
+    );
   }
 };
 
@@ -348,7 +377,7 @@ export const writeToDmxOutputDevice = async (
 ): Promise<void> => {
   const linuxDMXDevice = logicalDevices.outputs.linuxDMX[deviceId];
 
-  if (linuxDMXDevice) {
+  if (linuxDMXDevice !== undefined) {
     try {
       await writeToLinuxDMXOutputDevice(linuxDMXDevice, dmxData);
     } catch (error) {
@@ -363,7 +392,7 @@ export const writeToDmxOutputDevice = async (
     (id) => id === deviceId
   )[0];
 
-  if (mockDmxDevice) {
+  if (mockDmxDevice !== undefined) {
     await writeToMockOutput();
   }
 };

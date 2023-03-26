@@ -19,6 +19,8 @@ import {
 import { InputDeviceId, MixMode, ValueProvider } from '../../../engine-types';
 import { addDeviceChangeCallback, startEngine } from '../EngineAdapter';
 
+import { addControls } from './control';
+
 let midiInputId: InputDeviceId | undefined;
 let artNetInId: InputDeviceId | undefined;
 
@@ -687,7 +689,10 @@ const prepareScenes = () => {
 addDeviceChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
   midiInputId = inputDeviceIds.find((d) => d === 'LASER_CTRL_IN');
   artNetInId = inputDeviceIds.find((d) => d === 'ART_NET_INPUT_1');
-  console.log({ midiInputId, artNetInId });
+  const midiControlId = inputDeviceIds.find((d) => d === 'MIDI_CTRL_IN');
+  const output = dmxOutputDeviceIds.find((d) => d === 'UNIVERSE_1');
+
+  console.log({ midiInputId, artNetInId, midiControlId });
 
   // Add "mock" device if none
   if (dmxOutputDeviceIds.length <= 0) {
@@ -695,12 +700,13 @@ addDeviceChangeCallback(({ dmxOutputDeviceIds, inputDeviceIds }) => {
   } else if (!universe) {
     console.log('Creating universes');
 
-    universe = createUniverse(1, dmxOutputDeviceIds[0]);
+    universe = createUniverse(1, output || dmxOutputDeviceIds[0]);
     setDefaultUniverse(universe);
   }
 
   if (universe && !isProcessing()) {
     startEngine();
+    addControls();
     prepareScenes();
   }
 });

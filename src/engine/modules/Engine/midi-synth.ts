@@ -1,16 +1,14 @@
-import { MixMode, InputDeviceId } from '../../../engine-types';
-import { ChannelGroup } from './channel-group';
-
+import { InputDeviceId, MidiMessage, MixMode } from '../../../engine-types';
 import {
   ProcessSaga,
-  readFromInputDevice,
   isPaused,
-  pushValues,
-  waitNextFrame,
   isStopped,
+  pushValues,
+  readFromInputDevice,
+  waitNextFrame,
 } from './frame-generator';
 
-export type MidiMessage = number[];
+import { ChannelGroup } from './channel-group';
 
 export type VelocityToDmxValueMap = Record<number, number | undefined>;
 
@@ -57,30 +55,34 @@ export function* notesToChannelsMidiSynth({
   notesMapping,
 }: NotesToChannelsMidiSynthParams): ProcessSaga {
   const notesValue: Record<number, number> = {};
-  let pendingMessages: MidiMessage[] = [];
+  let pendingMessages: MidiMessage['message'][] = [];
 
   while (!(yield isStopped())) {
     const inputData = yield readFromInputDevice(inputDeviceId);
 
     pendingMessages.push(
-      ...inputData.map(({ message }: { message: MidiMessage }) => message)
+      ...inputData.map(
+        ({ message }: { message: MidiMessage['message'] }) => message
+      )
     );
 
     if (!(yield isPaused())) {
-      pendingMessages.forEach((message: MidiMessage) => {
-        if (message[0] === 144) {
-          notesValue[message[1]] = message[2];
+      pendingMessages.forEach((message) => {
+        const [mode, note, velocity] = message;
+
+        if (mode === 144) {
+          notesValue[note] = velocity;
         }
 
         if (message[0] === 128) {
-          notesValue[message[1]] = -1;
+          notesValue[note] = -1;
         }
       });
 
       pendingMessages = [];
     }
 
-    for (let i = 0; i < notesMapping.length; i++) {
+    for (let i = 0; i < notesMapping.length; i += 1) {
       const noteMap = notesMapping[i];
       const noteValue =
         notesValue[noteMap.note] !== undefined ? notesValue[noteMap.note] : -1;

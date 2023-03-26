@@ -1,7 +1,7 @@
 import { BPMTapper, ValueFader } from '../../../../Components';
 import { Grid, Stack } from '@mui/material';
 
-export const Page1 = (): JSX.Element => {
+export const Page2 = (): JSX.Element => {
   return (
     <Stack sx={{ height: '100%' }}>
       <Grid
@@ -13,25 +13,22 @@ export const Page1 = (): JSX.Element => {
           <ValueFader connectorKey="par-led-dimmer" title="Dimm" />
         </Grid>
         <Grid item>
-          <ValueFader connectorKey="par-led-red" title="R" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="par-led-green" title="G" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="par-led-blue" title="B" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="par-led-white" title="W" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="par-led-ambar" title="A" />
-        </Grid>
-        <Grid item>
-          <ValueFader connectorKey="par-led-uv" title="UV" />
-        </Grid>
-        <Grid item>
           <ValueFader connectorKey="par-led-strobe" title="Strb" />
+        </Grid>
+        <Grid item>
+          <ValueFader connectorKey="par-led-red-only" title="R/O" />
+        </Grid>
+        <Grid item>
+          <ValueFader connectorKey="par-led-blue-only" title="B/O" />
+        </Grid>
+        <Grid item>
+          <ValueFader connectorKey="par-led-colored-weight" title="Colored" />
+        </Grid>
+        <Grid item>
+          <BPMTapper connectorKey="par-led-colored-velocity" title="Col BPM" />
+        </Grid>
+        <Grid item>
+          <BPMTapper connectorKey="par-led-colored-fade" title="Col Fade" />
         </Grid>
       </Grid>
     </Stack>

@@ -1,8 +1,8 @@
 import {
+  DMXChannel,
   DMXData,
   DmxOutputDeviceId,
   InputDeviceId,
-  DMXChannel,
 } from '../../../engine-types';
 
 type DeviceWriteCb = (data: DMXData) => Promise<void>;
