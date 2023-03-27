@@ -1,4 +1,9 @@
 {
+  "ctrl-page-code": "Code Editor",
   "ctrl-page-0": "Outputs",
-  "ctrl-page-n": "CTRL #{pageNumber}"
+  "ctrl-page-n": "CTRL #{pageNumber}",
+  "outputs": "Outputs",
+  "inputs": "Inputs",
+  "add-output": "Add Output",
+  "add-input": "Add Input"
 }

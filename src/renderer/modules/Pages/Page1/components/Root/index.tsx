@@ -1,5 +1,6 @@
-import { BPMTapper, ValueFader } from '../../../../Components';
 import { Grid, Stack } from '@mui/material';
+
+import { ValueFader } from '../../../../Components';
 
 export const Page1 = (): JSX.Element => {
   return (

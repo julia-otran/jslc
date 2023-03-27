@@ -2,8 +2,8 @@ import { Tabs as MuiTabs, Tab } from '@mui/material';
 import { Outlet, useNavigate } from 'react-router-dom';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { ROUTER_PATHS_PARAMS } from '../../../Router';
 import { useIntl } from 'react-intl';
+import { ROUTER_PATHS_PARAMS } from '../../../Router';
 import { useLocalConn } from '../../../EngineIntegration';
 
 interface Props {
@@ -40,11 +40,16 @@ const Tabs = ({ onChange, pageCount }: Props): JSX.Element => {
 
   const pages = useMemo(
     () =>
-      Array(pageCount + 1)
+      Array(pageCount + 2)
         .fill(0)
         .map((_, i) => i),
     [pageCount]
   );
+
+  const staticLabels = [
+    formatMessage({ id: 'ctrl-page-code' }),
+    formatMessage({ id: 'ctrl-page-0' }),
+  ];
 
   return (
     <>
@@ -54,9 +59,8 @@ const Tabs = ({ onChange, pageCount }: Props): JSX.Element => {
             key={pageNumber}
             value={ROUTER_PATHS_PARAMS.CTRL_PAGE(pageNumber)}
             label={
-              pageNumber === 0
-                ? formatMessage({ id: 'ctrl-page-0' })
-                : formatMessage({ id: 'ctrl-page-n' }, { pageNumber })
+              staticLabels[pageNumber] ||
+              formatMessage({ id: 'ctrl-page-n' }, { pageNumber })
             }
           />
         ))}

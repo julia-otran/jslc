@@ -4,8 +4,6 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 
-import { Page1, Page2, Page3 } from './modules/Pages';
-import { ROUTER_PATHS, ROUTER_PATHS_PARAMS } from './modules/Router';
 import {
   Route,
   MemoryRouter as Router,
@@ -13,16 +11,19 @@ import {
   useNavigate,
 } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
-
 import { CssBaseline } from '@mui/material';
+import { IntlProvider } from 'react-intl';
+import { useEffect } from 'react';
+import { Page1, Page2, Page3 } from './modules/Pages';
+import { ROUTER_PATHS, ROUTER_PATHS_PARAMS } from './modules/Router';
+
+import { CodeEditor } from './modules/CodeEditor';
 import { IOSetup } from './modules/IOSetup';
 import { Index } from './modules/Index';
 import IntlMessages from './intl';
-import { IntlProvider } from 'react-intl';
 import { Root } from './modules/Root';
 import { Tabs } from './modules/Tabs';
 import { ValuesProvider } from './modules/EngineIntegration';
-import { useEffect } from 'react';
 
 const darkTheme = createTheme({
   palette: {
@@ -69,18 +70,22 @@ export default function App() {
               >
                 <Route
                   path={ROUTER_PATHS_PARAMS.CTRL_PAGE(0)}
-                  element={<Index />}
+                  element={<CodeEditor />}
                 />
                 <Route
                   path={ROUTER_PATHS_PARAMS.CTRL_PAGE(1)}
-                  element={<Page1 />}
+                  element={<Index />}
                 />
                 <Route
                   path={ROUTER_PATHS_PARAMS.CTRL_PAGE(2)}
-                  element={<Page2 />}
+                  element={<Page1 />}
                 />
                 <Route
                   path={ROUTER_PATHS_PARAMS.CTRL_PAGE(3)}
+                  element={<Page2 />}
+                />
+                <Route
+                  path={ROUTER_PATHS_PARAMS.CTRL_PAGE(4)}
                   element={<Page3 />}
                 />
               </Route>
