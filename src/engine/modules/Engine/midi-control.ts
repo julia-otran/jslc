@@ -51,9 +51,9 @@ export function* assignLocalConnWithMidi({
       change = { value, minValue, maxValue };
     };
 
-    inputData.forEach((message: EngineInputDataInputMessageData) =>
-      controlMap(message, pushChange)
-    );
+    inputData.forEach((message: EngineInputDataInputMessageData) => {
+      controlMap(message, pushChange);
+    });
 
     if (change) {
       if (change.minValue !== undefined && change.maxValue !== undefined) {

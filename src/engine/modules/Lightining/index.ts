@@ -29,7 +29,7 @@ const getScanCh = (scanNumber: number): number => (scanNumber - 1) * 16 + 1;
 const PAR_LED_UV = [209, 219];
 const PAR_LED_RGB_SMALL = [
   getScanCh(1),
-  getScanCh(2),
+  getScanCh(4),
   getScanCh(5),
   getScanCh(6),
   getScanCh(7),
@@ -37,9 +37,13 @@ const PAR_LED_RGB_SMALL = [
   getScanCh(9),
   getScanCh(10),
 ];
-const PAR_LED_RGB = [getScanCh(3), getScanCh(4)];
+
+const PAR_LED_RGB: number[] = [getScanCh(2), getScanCh(3)];
 
 let universe: Universe;
+
+const testChannelGroup = new ChannelGroup();
+
 const dimmerChannelGroup = new ChannelGroup();
 const redChannelGroup = new ChannelGroup();
 const greenChannelGroup = new ChannelGroup();
@@ -191,6 +195,8 @@ const prepareScenes = () => {
   power2.addChannel({ universe, start: 194, offset: 0 });
   power3.addChannel({ universe, start: 195, offset: 0 });
 
+  testChannelGroup.addChannel({ universe, start: getScanCh(1), offset: 4 });
+
   dimmerChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 0 });
   dimmerChannelGroup.addChannels({
     universe,
@@ -238,6 +244,14 @@ const prepareScenes = () => {
   strobeChannelGroup.addChannels({ universe, starts: PAR_LED_RGB, offset: 5 });
 
   velocityChannelGroup.addChannels({ universe, starts: PAR_LED_UV, offset: 9 });
+
+  addGenerator(
+    keepValue({
+      channelGroup: testChannelGroup,
+      targetValue: { valueMSB: 200 },
+      weightProvider: () => 1,
+    })
+  );
 
   addGenerator(
     keepValue({

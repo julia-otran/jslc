@@ -59,7 +59,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x3,
-        activeProvider: pageActivator(1, 2),
+        activeProvider: pageActivator(2, 3),
       }),
     })
   );
@@ -70,7 +70,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x4,
-        activeProvider: pageActivator(1),
+        activeProvider: pageActivator(2),
       }),
     })
   );
@@ -81,7 +81,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x5,
-        activeProvider: pageActivator(1),
+        activeProvider: pageActivator(2),
       }),
     })
   );
@@ -92,7 +92,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x6,
-        activeProvider: pageActivator(1),
+        activeProvider: pageActivator(2),
       }),
     })
   );
@@ -103,7 +103,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x7,
-        activeProvider: pageActivator(1),
+        activeProvider: pageActivator(2),
       }),
     })
   );
@@ -114,7 +114,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x8,
-        activeProvider: pageActivator(1),
+        activeProvider: pageActivator(2),
       }),
     })
   );
@@ -125,7 +125,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x9,
-        activeProvider: pageActivator(1),
+        activeProvider: pageActivator(2),
       }),
     })
   );
@@ -136,7 +136,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0xa,
-        activeProvider: pageActivator(1),
+        activeProvider: pageActivator(2),
       }),
     })
   );
@@ -147,7 +147,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x4,
-        activeProvider: pageActivator(2),
+        activeProvider: pageActivator(3),
       }),
     })
   );
@@ -158,7 +158,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x5,
-        activeProvider: pageActivator(2),
+        activeProvider: pageActivator(3),
       }),
     })
   );
@@ -169,7 +169,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x6,
-        activeProvider: pageActivator(2),
+        activeProvider: pageActivator(3),
       }),
     })
   );
@@ -180,7 +180,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x7,
-        activeProvider: pageActivator(2),
+        activeProvider: pageActivator(3),
       }),
     })
   );
@@ -191,7 +191,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x8,
-        activeProvider: pageActivator(2),
+        activeProvider: pageActivator(3),
         scale: {
           inputMin: 0,
           inputMax: 127,
@@ -208,7 +208,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x9,
-        activeProvider: pageActivator(2),
+        activeProvider: pageActivator(3),
         scale: {
           inputMin: 0,
           inputMax: 127,
@@ -241,7 +241,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x3,
-        activeProvider: pageActivator(3),
+        activeProvider: pageActivator(4),
       }),
     })
   );
@@ -252,7 +252,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x4,
-        activeProvider: pageActivator(3),
+        activeProvider: pageActivator(4),
       }),
     })
   );
@@ -263,7 +263,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x5,
-        activeProvider: pageActivator(3),
+        activeProvider: pageActivator(4),
       }),
     })
   );
@@ -274,7 +274,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x6,
-        activeProvider: pageActivator(3),
+        activeProvider: pageActivator(4),
       }),
     })
   );
@@ -285,7 +285,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x7,
-        activeProvider: pageActivator(3),
+        activeProvider: pageActivator(4),
       }),
     })
   );
@@ -296,7 +296,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x8,
-        activeProvider: pageActivator(3),
+        activeProvider: pageActivator(4),
       }),
     })
   );
@@ -307,7 +307,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0x9,
-        activeProvider: pageActivator(3),
+        activeProvider: pageActivator(4),
       }),
     })
   );
@@ -318,7 +318,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0xa,
-        activeProvider: pageActivator(3),
+        activeProvider: pageActivator(4),
       }),
     })
   );
@@ -329,7 +329,7 @@ export const addControls = (): void => {
       inputDeviceId: 'MIDI_CTRL_IN',
       controlMap: knobControlMap({
         controlNumber: 0xb,
-        activeProvider: pageActivator(3),
+        activeProvider: pageActivator(4),
       }),
     })
   );

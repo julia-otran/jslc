@@ -1,38 +1,37 @@
-import { groupBy, pipe, sort, flatten, reduce, map } from 'ramda';
+import { flatten, groupBy, map, pipe, reduce, sort } from 'ramda';
 import { v4 as uuidV4 } from 'uuid';
-
-import { dmxChannels, readFromInputDevice, getInputDeviceIds } from './devices';
 import {
-  addUniverseCreatedCallback,
-  Universe,
-  addUniverseRemovedCallback,
-  writeToUniverse,
-  getDefaultUniverse,
-} from './universes';
-import {
+  ChannelMap,
+  ChannelMix,
+  ChannelMixMap,
+  ChannelMixMapWithDefault,
+  ChannelMixWithDefault,
+  ChannelMixedMap,
+  ChannelOutput,
+  ChannelValue,
+  ChannelValueMix,
+  ChannelValueMixed,
   DMXData,
   DMXValue,
   InputDeviceId,
-  ChannelMap,
-  ChannelMixMapWithDefault,
   MixMode,
-  ChannelValue,
-  ChannelMix,
-  ChannelMixWithDefault,
-  ChannelValueMixed,
-  ChannelValueMix,
-  ChannelMixMap,
-  ChannelMixedMap,
-  ChannelOutput,
-  Token,
   Process,
-  ProcessStatus,
-  ProcessPriority,
   ProcessCallbackParams,
+  ProcessPriority,
+  ProcessStatus,
   Task,
+  Token,
 } from '../../../engine-types';
-import { sleep, channelValueToValue, valueToChannelValue } from './utils';
-import { getChannelMSB, getChannelLSB } from './channel-lsb';
+import {
+  Universe,
+  addUniverseCreatedCallback,
+  addUniverseRemovedCallback,
+  getDefaultUniverse,
+  writeToUniverse,
+} from './universes';
+import { channelValueToValue, sleep, valueToChannelValue } from './utils';
+import { dmxChannels, getInputDeviceIds, readFromInputDevice } from './devices';
+import { getChannelLSB, getChannelMSB } from './channel-lsb';
 
 interface OutputFunction<TReturn = any> {
   token: Token;
@@ -473,7 +472,7 @@ let writePromise: Promise<void> | undefined;
 
 const writeDmxResults = async (results: DmxResults): Promise<void> => {
   if (isWriting) {
-    await Promise.race([sleep(10), writePromise]);
+    await Promise.race([sleep(25), writePromise]);
 
     if (isWriting) {
       return;
