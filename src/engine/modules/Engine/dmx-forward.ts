@@ -2,6 +2,7 @@ import {
   ChannelMixMapWithDefault,
   InputDeviceId,
   MixMode,
+  UniverseOrDefault,
   ValueProvider,
 } from '../../../engine-types';
 import {
@@ -11,8 +12,6 @@ import {
   readFromInputDevice,
   waitNextFrame,
 } from './frame-generator';
-
-import { UniverseOrDefault } from './universes';
 
 export const defaultChannelMappingFromTo = (
   startChannel: number,

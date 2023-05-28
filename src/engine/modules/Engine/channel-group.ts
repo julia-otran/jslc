@@ -1,13 +1,14 @@
-import { v4 as uuidV4 } from 'uuid';
-
-import { UniverseOrDefault, getDefaultUniverse } from './universes';
 import {
-  validateDMXChannel,
-  GroupOutputDefault,
   ChannelMap,
   ChannelMixMapWithDefault,
   ChannelValueMix,
+  GroupOutputDefault,
+  UniverseOrDefault,
+  validateDMXChannel,
 } from '../../../engine-types';
+
+import { getDefaultUniverse } from './universes';
+import { v4 as uuidV4 } from 'uuid';
 
 export const getOutput = (
   universe: UniverseOrDefault,

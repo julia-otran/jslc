@@ -3,6 +3,7 @@ import './core';
 export {
   addDevicesChangeCallback,
   removeDevicesChangeCallback,
+  clearDevicesChangeCallbacks,
   registerDmxOutputDevice,
   unregisterDmxOutputDevice,
   getDmxOutputDeviceIds,

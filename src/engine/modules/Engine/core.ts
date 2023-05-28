@@ -1,5 +1,3 @@
-import { flatten, groupBy, map, pipe, reduce, sort } from 'ramda';
-import { v4 as uuidV4 } from 'uuid';
 import {
   ChannelMap,
   ChannelMix,
@@ -21,17 +19,15 @@ import {
   ProcessStatus,
   Task,
   Token,
-} from '../../../engine-types';
-import {
   Universe,
-  addUniverseCreatedCallback,
-  addUniverseRemovedCallback,
-  getDefaultUniverse,
-  writeToUniverse,
-} from './universes';
+} from '../../../engine-types';
 import { channelValueToValue, sleep, valueToChannelValue } from './utils';
 import { dmxChannels, getInputDeviceIds, readFromInputDevice } from './devices';
+import { flatten, groupBy, map, pipe, reduce, sort } from 'ramda';
 import { getChannelLSB, getChannelMSB } from './channel-lsb';
+import { getDefaultUniverse, writeToUniverse } from './universes';
+
+import { v4 as uuidV4 } from 'uuid';
 
 interface OutputFunction<TReturn = any> {
   token: Token;
@@ -45,9 +41,13 @@ interface OutputFunction<TReturn = any> {
 
 let outputFunctions: OutputFunction[] = [];
 
+export const clearProcesses = () => {
+  outputFunctions = [];
+};
+
 export const getNextPriority = (): number => {
   const prio = Math.max(...outputFunctions.map((fn) => fn.priority[0]));
-  return isFinite(prio) ? prio + 1 : 0;
+  return Number.isFinite(prio) ? prio + 1 : 0;
 };
 
 const addProcess = <TReturn>(
@@ -103,24 +103,26 @@ export const stopProcess = (task: Task): void => {
 export const cancelProcess = (task: Task): void => {
   outputFunctions
     .filter((fn) => fn.token === task.token)
-    .forEach((fn) => (fn.done = true));
+    .forEach((fn) => {
+      fn.done = true;
+    });
 };
 
 let processingUniverses: Universe[] = [];
+
+export const stopProcessAllUniverses = () => {
+  processingUniverses = [];
+};
 
 export const startProcessUniverse = (universe: Universe) => {
   console.log('Universe added to process', universe);
   processingUniverses.push(universe);
 };
 
-addUniverseCreatedCallback(startProcessUniverse);
-
 export const stopProcessUniverse = (universe: Universe) => {
   console.log('Universe processing stopped', universe);
   processingUniverses = processingUniverses.filter((u) => u.id !== universe.id);
 };
-
-addUniverseRemovedCallback(stopProcessUniverse);
 
 export const isTaskPaused = (task: Task): boolean => {
   const fn = outputFunctions.find((fn) => fn.token === task.token);
@@ -493,13 +495,20 @@ const writeDmxResults = async (results: DmxResults): Promise<void> => {
     lastWriteRunDate = current;
   }
 
-  writePromise = Promise.allSettled(
-    results.map((r) => writeToUniverse(r.universe, r.data))
-  ).then(() => {
+  if (results.length === 0) {
+    writePromise = sleep(25);
+  } else {
+    writePromise = Promise.allSettled(
+      results.map((r) => writeToUniverse(r.universe, r.data))
+    ).then(() => {
+      return undefined;
+    });
+  }
+
+  // eslint-disable-next-line promise/catch-or-return
+  writePromise.finally(() => {
     isWriting = false;
     writePromise = undefined;
-
-    return undefined;
   });
 };
 
@@ -517,14 +526,9 @@ export const startProcessing = async () => {
 
   while (process) {
     try {
-      if (processingUniverses.length <= 0) {
-        process = false;
-        console.error('Engine error: No universes to process');
-        throw new Error('No universes to process');
-      }
-
       consumeInputDevices();
       const results = processUniverses();
+      // eslint-disable-next-line no-await-in-loop
       await writeDmxResults(results);
 
       errorCount = 0;
@@ -547,19 +551,21 @@ export const startProcessing = async () => {
         console.error('Too many errors when processing. Engine will sleep.');
         console.error(error);
 
+        // eslint-disable-next-line no-await-in-loop
         await sleep(10);
       }
     }
   }
 
+  process = false;
   runFinishCallback?.();
 };
 
 export const stopProcessing = (): Promise<void> => {
   return new Promise((resolve) => {
     if (process) {
-      runFinishCallback = resolve;
       process = false;
+      runFinishCallback = resolve;
     } else {
       resolve();
     }

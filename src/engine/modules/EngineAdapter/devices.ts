@@ -99,6 +99,10 @@ type DeviceReloadCallback = ({
 
 let deviceChangeCallbacks: Array<DeviceReloadCallback> = [];
 
+export const clearDeviceChangeCallbacks = () => {
+  deviceChangeCallbacks = [];
+};
+
 export const addDeviceChangeCallback = (
   callback: DeviceReloadCallback
 ): void => {

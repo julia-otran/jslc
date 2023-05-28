@@ -1,10 +1,10 @@
 import {
   ChannelMixMap,
-  ChannelMixedMap,
   ChannelMixMapWithDefault,
+  ChannelMixedMap,
 } from './channel-group-types';
 
-import { InputDeviceId } from './devices';
+import { InputDeviceId } from './devices-types';
 
 export type Token = string;
 

@@ -1,7 +1,7 @@
 import { ChannelValue } from '../../../engine-types';
 
 export const sleep = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+  new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export function channelValueToValue<T extends ChannelValue | undefined>(
   a: T

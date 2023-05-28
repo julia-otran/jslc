@@ -1,20 +1,26 @@
-import { DmxOutputDeviceId, DMXData } from '../../../engine-types';
+import {
+  DMXData,
+  DmxOutputDeviceId,
+  Universe,
+  UniverseOrDefault,
+} from '../../../engine-types';
+
 import { writeToDmxDevice } from './devices';
-
-export interface Universe {
-  id: number;
-  dmxOutputDeviceId: DmxOutputDeviceId;
-}
-
-export type UniverseOrDefault = Universe | undefined;
 
 export type UniverseCreatedCallback = (universe: Universe) => void;
 export type UniverseRemovedCallback = (universe: Universe) => void;
 
-let defaultUniverse: Universe | undefined = undefined;
+let defaultUniverse: Universe | undefined;
 let universes: Record<number, Universe> = {};
 let universeCreatedCallbacks: UniverseCreatedCallback[] = [];
 let universeRemovedCallbacks: UniverseRemovedCallback[] = [];
+
+export const clearUniverses = () => {
+  defaultUniverse = undefined;
+  universes = {};
+  universeCreatedCallbacks = [];
+  universeRemovedCallbacks = [];
+};
 
 export const addUniverseCreatedCallback = (
   cb: UniverseCreatedCallback

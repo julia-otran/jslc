@@ -1,22 +1,21 @@
 import {
-  startProcessing,
-  stopProcessing,
+  EngineInitInputMessage,
+  EngineInputMessageNames,
+  EngineOutputMessageNames,
+  EngineState,
+  EngineStoppedOutputMessage,
+} from '../../../engine-types';
+import {
   exportLocalConnValues,
   importLocalConnValues,
+  startProcessing,
+  stopProcessing,
 } from '../Engine';
-
 import {
   registerMessageListener,
-  unregisterMessageListener,
   sendMessage,
+  unregisterMessageListener,
 } from './messaging';
-import {
-  EngineInputMessageNames,
-  EngineInitInputMessage,
-  EngineOutputMessageNames,
-  EngineStoppedOutputMessage,
-  EngineState,
-} from '../../../engine-types';
 
 let engineState: EngineState | null | undefined;
 let shouldStartEngine = false;
@@ -47,25 +46,25 @@ registerMessageListener<EngineInitInputMessage>(
   }
 );
 
-// eslint-disable-next-line import/prefer-default-export
+export const stopEngine = async (): Promise<void> => {
+  engineState = {
+    localConnValues: exportLocalConnValues(),
+  };
+
+  unregisterMessageListener(EngineInputMessageNames.STOP_ENGINE);
+
+  await stopProcessing();
+
+  sendMessage<EngineStoppedOutputMessage>({
+    message: EngineOutputMessageNames.ENGINE_STOPPED,
+    data: engineState ?? { localConnValues: {} },
+  });
+};
+
 export const startEngine = (): void => {
   const stopMessageListener = () => {
+    stopEngine();
     engineState = undefined;
-
-    stopProcessing()
-      .then(() => {
-        sendMessage<EngineStoppedOutputMessage>({
-          message: EngineOutputMessageNames.ENGINE_STOPPED,
-          data: {
-            localConnValues: exportLocalConnValues(),
-          },
-        });
-
-        return undefined;
-      })
-      .catch(console.error);
-
-    unregisterMessageListener(EngineInputMessageNames.STOP_ENGINE);
   };
 
   registerMessageListener(

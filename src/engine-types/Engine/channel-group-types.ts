@@ -1,5 +1,5 @@
-import { UniverseOrDefault, Universe } from './universes';
-import { DMXChannel, DMXValue } from './devices';
+import { DMXChannel, DMXValue } from './devices-types';
+import { Universe, UniverseOrDefault } from './universes-types';
 
 export interface GroupOutputDefault {
   universe: UniverseOrDefault;

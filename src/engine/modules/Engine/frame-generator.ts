@@ -1,15 +1,15 @@
-import { v4 as uuidV4 } from 'uuid';
-import { all as allR, any } from 'ramda';
-
 import {
-  Process,
-  Task,
-  ProcessCallbackParams,
   ChannelMixMap,
   ChannelMixMapWithDefault,
   InputDeviceId,
+  Process,
+  ProcessCallbackParams,
+  Task,
 } from '../../../engine-types';
+import { all as allR, any } from 'ramda';
+
 import { addRootProcess } from './core';
+import { v4 as uuidV4 } from 'uuid';
 
 export enum EffectType {
   WAIT_NEXT_FRAME = 'WAIT_NEXT_FRAME',
@@ -457,13 +457,18 @@ export type ProcessSaga<
 type TInternalSaga = ProcessSaga;
 
 let putQueue: PutEffectData<any, any>[] = [];
-const takeQueue: Record<string, EffectChannelToken<any>> = {};
+let takeQueue: Record<string, EffectChannelToken<any>> = {};
+
+export const clearGeneratorQueues = () => {
+  putQueue = [];
+  takeQueue = {};
+};
 
 export const processGenerator = function* <
   TChannelToken extends string,
   TChannelData extends { [key in EffectChannelToken<TChannelToken>]: any },
-  TReadFromInputDeviceKey extends number,
-  TReadFromInputDeviceReturn,
+  TReadFromInputDeviceKey extends string,
+  TReadFromInputDeviceReturn extends { [key in TReadFromInputDeviceKey]: any },
   TRaceKeys extends string,
   TRaceMap extends { [key in TRaceKeys]: TInternalSaga },
   TAllKeys extends string,
@@ -486,9 +491,8 @@ export const processGenerator = function* <
   let controls = yield;
   let forkPriority = 1;
   let channelMixStack: ChannelMixMap = [];
-  let takeChannelToken: EffectChannelToken<TChannelToken> | undefined =
-    undefined;
-  let forwardParam: any = undefined;
+  let takeChannelToken: EffectChannelToken<TChannelToken> | undefined;
+  let forwardParam: any;
   let loopCount = 0;
 
   while (true) {
@@ -502,7 +506,6 @@ export const processGenerator = function* <
       isTaskPaused,
       isTaskStopped,
       isTaskDone,
-      pushValues,
     } = controls;
     const { currentPriority } = controls.params;
 
@@ -564,7 +567,7 @@ export const processGenerator = function* <
     } else if (isTakeEffect(result.value)) {
       takeChannelToken = result.value.effectData.channelToken;
 
-      let takeToken = uuidV4();
+      const takeToken = uuidV4();
       takeQueue[takeToken] = takeChannelToken;
 
       let putEvent = putQueue.find((q) => q.channelToken === takeChannelToken);
@@ -594,7 +597,9 @@ export const processGenerator = function* <
     } else if (isTakeMaybeEffect(result.value)) {
       takeChannelToken = result.value.effectData.channelToken;
 
-      let putEvent = putQueue.find((q) => q.channelToken === takeChannelToken);
+      const putEvent = putQueue.find(
+        (q) => q.channelToken === takeChannelToken
+      );
       putQueue = putQueue.filter((q) => q.channelToken !== takeChannelToken);
 
       // Ensure we return always on next frame
@@ -616,16 +621,15 @@ export const processGenerator = function* <
       const isAllTasksDone = allR<Task>((task) => {
         if (joinMode === JoinMode.STOPPED) {
           return isTaskStopped(task);
-        } else {
-          return isTaskDone(task);
         }
+        return isTaskDone(task);
       });
 
       while (!isAllTasksDone(tasks)) {
         controls = yield;
       }
     } else if (isRaceEffect(result.value)) {
-      let { raceMap, joinMode } = result.value.effectData;
+      const { raceMap, joinMode } = result.value.effectData;
 
       const keys = Object.keys(raceMap) as TRaceKeys[];
 
@@ -662,7 +666,7 @@ export const processGenerator = function* <
         controls = yield;
       }
     } else if (isAllEffect(result.value)) {
-      let { allMap, joinMode } = result.value.effectData;
+      const { allMap, joinMode } = result.value.effectData;
 
       const keys = Object.keys(allMap) as TAllKeys[];
 
@@ -729,8 +733,8 @@ export const processGenerator = function* <
 export const addGenerator = <
   TChannelToken extends string,
   TChannelData extends { [key in EffectChannelToken<TChannelToken>]: any },
-  TReadFromInputDeviceKey extends number,
-  TReadFromInputDeviceReturn,
+  TReadFromInputDeviceKey extends string,
+  TReadFromInputDeviceReturn extends { [key in TReadFromInputDeviceKey]: any },
   TRaceKeys extends string,
   TRaceMap extends { [key in TRaceKeys]: TInternalSaga },
   TAllKeys extends string,

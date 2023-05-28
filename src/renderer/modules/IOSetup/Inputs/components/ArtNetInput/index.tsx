@@ -1,15 +1,6 @@
-import {
-  Box,
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  TextField,
-} from '@mui/material';
-import { IOState, IOStateInfo } from '../../../../EngineIntegration';
+import { Box, FormControl, MenuItem, Select, TextField } from '@mui/material';
 
+import { IOStateInfo } from '../../../../EngineIntegration';
 import { useFormContext } from 'react-hook-form';
 
 interface ArtNetInputProps {

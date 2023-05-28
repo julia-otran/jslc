@@ -4,6 +4,7 @@ import {
   EngineInputDataInputMessage,
   EngineInputMessage,
   EngineInputMessageNames,
+  EngineLoadCodeInputMessage,
   EngineLocalConnInputMessage,
   EngineLocalConnOutputMessage,
   EngineLocalConnRequestValueInputMessage,
@@ -139,6 +140,26 @@ ipcMain.on(
   }
 );
 
+ipcMain.on('request-engine-code', (): void => {
+  uiMessageDispatcher?.('engine-code', localStorage.getItem('CODE'));
+});
+
+ipcMain.on(
+  'engine-code-update',
+  (_: Electron.IpcMainEvent, code: string): void => {
+    if (localStorage.getItem('CODE') === code) {
+      return;
+    }
+
+    localStorage.setItem('CODE', code);
+
+    sendMessage<EngineLoadCodeInputMessage>({
+      message: EngineInputMessageNames.LOAD_CODE,
+      data: code,
+    });
+  }
+);
+
 export const stopEngine = (): Promise<void> => {
   const currentWorker = worker;
 
@@ -216,6 +237,15 @@ const loadWorker = async () => {
 
   if (savedIOString) {
     setLogicalDevicesInfo(JSON.parse(savedIOString));
+  }
+
+  const savedCodeString = localStorage.getItem('CODE');
+
+  if (savedCodeString) {
+    sendMessage({
+      message: EngineInputMessageNames.LOAD_CODE,
+      data: savedCodeString,
+    });
   }
 };
 

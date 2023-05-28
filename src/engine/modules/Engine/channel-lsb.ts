@@ -1,5 +1,8 @@
-import { validateDMXChannel, DMXChannel } from './devices';
-import { Universe } from './universes';
+import {
+  DMXChannel,
+  Universe,
+  validateDMXChannel,
+} from '../../../engine-types';
 
 export interface ChannelCombine {
   universe: Universe;
@@ -34,8 +37,7 @@ export const createChannelBitAssignement = ({
     .filter((combined) => universe.id === combined.universe.id)
     .find(
       (combined) =>
-        combined.channelLSB === channelLSB ||
-        combined.channelMSB === combined.channelMSB
+        combined.channelLSB === channelLSB || combined.channelMSB === channelMSB
     );
 
   if (existentCombine !== undefined) {

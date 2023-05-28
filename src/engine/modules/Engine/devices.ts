@@ -71,6 +71,10 @@ export const unregisterDmxOutputDevice = (id: DmxOutputDeviceId): void => {
   triggerChangeCallbacks();
 };
 
+export const clearDevicesChangeCallbacks = () => {
+  deviceChangeCallbacks = [];
+};
+
 export const addDevicesChangeCallback = (cb: DevicesChangeCallback): void => {
   deviceChangeCallbacks.push(cb);
 

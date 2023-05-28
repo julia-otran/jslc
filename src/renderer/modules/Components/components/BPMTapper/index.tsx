@@ -21,7 +21,7 @@ export const BPMTapper = ({
   const bpmTapRef = useRef(createBPMTapper());
 
   const handleChange = useCallback(
-    (event: Event, newValue: number | number[]) => {
+    (_: Event, newValue: number | number[]) => {
       if (typeof newValue === 'number') {
         setValue(newValue);
       }

@@ -15,6 +15,7 @@ export enum EngineInputMessageNames {
   LOCAL_CONN_REQUEST_VALUE = 'local-conn-request-value',
   STOP_ENGINE = 'stop-engine',
   INIT_ENGINE = 'init-engine',
+  LOAD_CODE = 'load-code',
 }
 
 export interface EngineOutputMessage<
@@ -131,4 +132,11 @@ export type EngineInitInputMessageData = EngineState | undefined;
 export type EngineInitInputMessage = EngineInputMessage<
   EngineInputMessageNames.INIT_ENGINE,
   EngineInitInputMessageData
+>;
+
+export type EngineLoadCodeInputMessageData = string;
+
+export type EngineLoadCodeInputMessage = EngineInputMessage<
+  EngineInputMessageNames.LOAD_CODE,
+  EngineLoadCodeInputMessageData
 >;

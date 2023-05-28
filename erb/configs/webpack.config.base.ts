@@ -2,9 +2,9 @@
  * Base webpack config used across other specific configs
  */
 
+import { dependencies as externals } from '../../release/app/package.json';
 import webpack from 'webpack';
 import webpackPaths from './webpack.paths';
-import { dependencies as externals } from '../../release/app/package.json';
 
 const configuration: webpack.Configuration = {
   externals: [...Object.keys(externals || {})],
@@ -18,10 +18,6 @@ const configuration: webpack.Configuration = {
         exclude: /node_modules/,
         use: {
           loader: 'ts-loader',
-          options: {
-            // Remove this line to enable type checking in webpack builds
-            transpileOnly: true,
-          },
         },
       },
     ],

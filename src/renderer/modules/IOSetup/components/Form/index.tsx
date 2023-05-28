@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from 'react';
-import { Tabs as MuiTabs, Tab, Box, Button } from '@mui/material';
-import { useIntl } from 'react-intl';
-import { useForm, FormProvider } from 'react-hook-form';
+import { Box, Button, Tabs as MuiTabs, Tab } from '@mui/material';
+import { FormProvider, useForm } from 'react-hook-form';
+import { IOState, IOStateInfo } from '../../../EngineIntegration';
+import React, { useCallback, useState } from 'react';
 
 import { Inputs } from '../../Inputs';
 import { Outputs } from '../../Outputs';
-import { IOStateInfo, IOState } from '../../../EngineIntegration';
+import { useIntl } from 'react-intl';
 
 interface IOSetupFormProps {
   onSubmit(data: IOStateInfo): void;
@@ -29,9 +29,12 @@ const IOSetupForm: React.FC<IOSetupFormProps> = ({
   const { handleSubmit } = form;
 
   const [tab, setTab] = useState('outputs');
-  const handleTabChange = useCallback((_, value: string) => {
-    setTab(value);
-  }, []);
+  const handleTabChange = useCallback(
+    (_: React.SyntheticEvent<Element, Event>, value: string) => {
+      setTab(value);
+    },
+    []
+  );
 
   return (
     <>

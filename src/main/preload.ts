@@ -1,4 +1,5 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron';
+import { IpcRendererEvent, contextBridge, ipcRenderer } from 'electron';
+
 import { EngineLocalConnInputMessage } from '../engine-types';
 import type { LogicalDevicesInfo } from './devices-bridge';
 
@@ -7,9 +8,12 @@ export type Channels =
   | 'devices-found'
   | 'local-conn'
   | 'io-state'
-  | 'navigate';
+  | 'navigate'
+  | 'engine-code';
 
 export type IPCRenderer = {
+  requestEngineCode(): void;
+  engineCodeUpdate(data: string): void;
   requestLocalConnValue(connectorKey: string): void;
   localConn(data: EngineLocalConnInputMessage): void;
   requestDevices(requestId: string): void;
@@ -25,6 +29,12 @@ export type RendererElectron = {
 
 const electronBridge: RendererElectron = {
   ipcRenderer: {
+    requestEngineCode() {
+      ipcRenderer.send('request-engine-code');
+    },
+    engineCodeUpdate(data: string) {
+      ipcRenderer.send('engine-code-update', data);
+    },
     requestLocalConnValue(connectorKey: string) {
       ipcRenderer.send('request-local-conn-value', connectorKey);
     },

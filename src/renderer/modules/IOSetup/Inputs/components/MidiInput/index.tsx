@@ -1,6 +1,7 @@
-import { useFormContext } from 'react-hook-form';
-import { FormControl, Select, MenuItem, Box } from '@mui/material';
+import { Box, MenuItem, Select } from '@mui/material';
+
 import { IOStateInfo } from '../../../../EngineIntegration';
+import { useFormContext } from 'react-hook-form';
 
 interface MidiInputInputProps {
   index: number;
