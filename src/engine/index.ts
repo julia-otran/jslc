@@ -1,7 +1,9 @@
-import './modules/EngineLoader';
+import * as Engine from './modules/Engine';
+import * as EngineAdapter from './modules/EngineAdapter';
+import * as EngineTypes from '../engine-types';
 
-import type * as Engine from './modules/Engine';
-import type * as EngineAdapter from './modules/EngineAdapter';
-import type * as EngineTypes from '../engine-types';
+import { initEngineLoader } from './modules/EngineLoader';
+
+initEngineLoader();
 
 export { Engine, EngineAdapter, EngineTypes };

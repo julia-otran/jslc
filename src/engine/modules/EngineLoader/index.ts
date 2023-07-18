@@ -1,3 +1,4 @@
+import { transpile } from 'typescript';
 import * as engine from '../Engine';
 import * as engineAdapter from '../EngineAdapter';
 
@@ -7,7 +8,6 @@ import {
 } from '../../../engine-types';
 
 import { registerMessageListener } from '../EngineAdapter/messaging';
-import { transpile } from 'typescript';
 
 let previousRunningCode: string | undefined;
 
@@ -68,15 +68,18 @@ const loadCode = async (codeString: string): Promise<void> => {
   }
 };
 
-registerMessageListener<EngineLoadCodeInputMessage>(
-  EngineInputMessageNames.LOAD_CODE,
-  (codeString) => {
-    loadCode(codeString).catch(() => {
-      if (previousRunningCode) {
-        return loadCode(previousRunningCode);
-      }
+// eslint-disable-next-line import/prefer-default-export
+export const initEngineLoader = () => {
+  registerMessageListener<EngineLoadCodeInputMessage>(
+    EngineInputMessageNames.LOAD_CODE,
+    (codeString) => {
+      loadCode(codeString).catch(() => {
+        if (previousRunningCode) {
+          return loadCode(previousRunningCode);
+        }
 
-      return undefined;
-    });
-  }
-);
+        return undefined;
+      });
+    }
+  );
+};

@@ -14,10 +14,10 @@ import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline } from '@mui/material';
 import { IntlProvider } from 'react-intl';
 import { useEffect } from 'react';
+import { CodeEditor, CodeEditorTypesRegister } from './modules/CodeEditor';
 import { Page1, Page2, Page3 } from './modules/Pages';
 import { ROUTER_PATHS, ROUTER_PATHS_PARAMS } from './modules/Router';
 
-import { CodeEditor } from './modules/CodeEditor';
 import { IOSetup } from './modules/IOSetup';
 import { Index } from './modules/Index';
 import IntlMessages from './intl';
@@ -57,44 +57,46 @@ export default function App() {
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
-      <IntlProvider locale="en-US" messages={IntlMessages['en-US']}>
-        <ValuesProvider>
-          <Router>
-            <MenuRouterListener />
+      <CodeEditorTypesRegister>
+        <IntlProvider locale="en-US" messages={IntlMessages['en-US']}>
+          <ValuesProvider>
+            <Router>
+              <MenuRouterListener />
 
-            <Routes>
-              <Route path={ROUTER_PATHS.IO_SETUP} element={<IOSetup />} />
-              <Route
-                path={ROUTER_PATHS.CTRL_ROOT}
-                element={<Tabs pageCount={3} />}
-              >
+              <Routes>
+                <Route path={ROUTER_PATHS.IO_SETUP} element={<IOSetup />} />
                 <Route
-                  path={ROUTER_PATHS_PARAMS.CTRL_PAGE(0)}
-                  element={<CodeEditor />}
-                />
-                <Route
-                  path={ROUTER_PATHS_PARAMS.CTRL_PAGE(1)}
-                  element={<Index />}
-                />
-                <Route
-                  path={ROUTER_PATHS_PARAMS.CTRL_PAGE(2)}
-                  element={<Page1 />}
-                />
-                <Route
-                  path={ROUTER_PATHS_PARAMS.CTRL_PAGE(3)}
-                  element={<Page2 />}
-                />
-                <Route
-                  path={ROUTER_PATHS_PARAMS.CTRL_PAGE(4)}
-                  element={<Page3 />}
-                />
-              </Route>
+                  path={ROUTER_PATHS.CTRL_ROOT}
+                  element={<Tabs pageCount={3} />}
+                >
+                  <Route
+                    path={ROUTER_PATHS_PARAMS.CTRL_PAGE(0)}
+                    element={<CodeEditor />}
+                  />
+                  <Route
+                    path={ROUTER_PATHS_PARAMS.CTRL_PAGE(1)}
+                    element={<Index />}
+                  />
+                  <Route
+                    path={ROUTER_PATHS_PARAMS.CTRL_PAGE(2)}
+                    element={<Page1 />}
+                  />
+                  <Route
+                    path={ROUTER_PATHS_PARAMS.CTRL_PAGE(3)}
+                    element={<Page2 />}
+                  />
+                  <Route
+                    path={ROUTER_PATHS_PARAMS.CTRL_PAGE(4)}
+                    element={<Page3 />}
+                  />
+                </Route>
 
-              <Route path="/" element={<Root />} />
-            </Routes>
-          </Router>
-        </ValuesProvider>
-      </IntlProvider>
+                <Route path="/" element={<Root />} />
+              </Routes>
+            </Router>
+          </ValuesProvider>
+        </IntlProvider>
+      </CodeEditorTypesRegister>
     </ThemeProvider>
   );
 }

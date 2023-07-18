@@ -2,6 +2,19 @@ import { useEffect, useState } from 'react';
 
 import { useDebounce } from '../Utils';
 
+export const useEngineTypes = (): string | undefined => {
+  const [typesData, setTypesData] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    window.electron.ipcRenderer
+      .getEngineTypes()
+      .then(setTypesData)
+      .catch(() => {});
+  }, []);
+
+  return typesData;
+};
+
 export type EngineCodeSet = (code: string) => void;
 
 export const useEngineCode = (): [string | undefined, EngineCodeSet] => {

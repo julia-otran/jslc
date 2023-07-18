@@ -1,5 +1,3 @@
-import './core';
-
 export {
   addDevicesChangeCallback,
   removeDevicesChangeCallback,

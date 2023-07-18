@@ -16,9 +16,11 @@ const appNodeModulesPath = path.join(appPath, 'node_modules');
 const srcNodeModulesPath = path.join(srcPath, 'node_modules');
 
 const distPath = path.join(appPath, 'dist');
-const distMainPath = path.join(distPath, 'main');
 const distRendererPath = path.join(distPath, 'renderer');
+const distMainPath = path.join(distPath, 'main');
 const distEnginePath = path.join(distPath, 'engine');
+const distSrcPath = path.join(distPath, 'src');
+const distSrcEnginePath = path.join(distSrcPath, 'engine');
 
 const buildPath = path.join(releasePath, 'build');
 
@@ -38,5 +40,6 @@ export default {
   distMainPath,
   distRendererPath,
   distEnginePath,
+  distSrcEnginePath,
   buildPath,
 };

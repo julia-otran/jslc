@@ -4,7 +4,9 @@ import { execSync, spawn } from 'child_process';
 
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
+import NodePolyfillWebpackPlugin from 'node-polyfill-webpack-plugin';
 import ReactRefreshWebpackPlugin from '@pmmmwh/react-refresh-webpack-plugin';
+// import ReplacePlugin from 'webpack-plugin-replace';
 import chalk from 'chalk';
 import fs from 'fs';
 import { merge } from 'webpack-merge';
@@ -113,8 +115,10 @@ const configuration: webpack.Configuration = {
         ]),
 
     new MonacoWebpackPlugin({
-      languages: ['typescript'],
+      languages: ['javascript', 'typescript'],
     }),
+
+    new NodePolyfillWebpackPlugin(),
 
     new webpack.NoEmitOnErrorsPlugin(),
 

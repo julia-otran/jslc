@@ -107,6 +107,11 @@ export const addDeviceChangeCallback = (
   callback: DeviceReloadCallback
 ): void => {
   deviceChangeCallbacks.push(callback);
+
+  callback({
+    dmxOutputDeviceIds: getDmxOutputDeviceIds(),
+    inputDeviceIds: getInputDeviceIds(),
+  });
 };
 
 export const removeDeviceChangeCallback = (

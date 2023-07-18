@@ -1,5 +1,9 @@
 /* eslint global-require: off, no-console: off, promise/always-return: off */
 
+import { BrowserWindow, app, shell } from 'electron';
+
+import { autoUpdater } from 'electron-updater';
+import log from 'electron-log';
 /**
  * This module executes inside of electron's main process. You can start
  * electron renderer process from here and communicate with the other processes
@@ -9,16 +13,14 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell } from 'electron';
-import { autoUpdater } from 'electron-updater';
-import log from 'electron-log';
 import MenuBuilder from './menu';
-import { resolveHtmlPath } from './util';
 import {
   restartEngine,
-  terminateEngine,
   setUIMessageDispatcher,
+  terminateEngine,
 } from './engine-handler';
+import { resolveHtmlPath } from './util';
+import { setUIMessageDispatcher as setUIMessageDispatcher2 } from './engine-types';
 
 export default class AppUpdater {
   constructor() {
@@ -82,6 +84,10 @@ const createWindow = async () => {
   });
 
   setUIMessageDispatcher((channel, message) => {
+    mainWindow?.webContents.send(channel, message);
+  });
+
+  setUIMessageDispatcher2((channel, message) => {
     mainWindow?.webContents.send(channel, message);
   });
 

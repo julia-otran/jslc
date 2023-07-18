@@ -12,6 +12,7 @@ export type Channels =
   | 'engine-code';
 
 export type IPCRenderer = {
+  getEngineTypes(): Promise<string>;
   requestEngineCode(): void;
   engineCodeUpdate(data: string): void;
   requestLocalConnValue(connectorKey: string): void;
@@ -29,6 +30,19 @@ export type RendererElectron = {
 
 const electronBridge: RendererElectron = {
   ipcRenderer: {
+    getEngineTypes() {
+      return new Promise((resolve, reject) => {
+        ipcRenderer.once('engine-types-data', (_, data) => {
+          if (data !== null) {
+            resolve(data);
+          } else {
+            reject();
+          }
+        });
+
+        ipcRenderer.send('request-engine-types');
+      });
+    },
     requestEngineCode() {
       ipcRenderer.send('request-engine-code');
     },
