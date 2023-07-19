@@ -30,7 +30,7 @@ const CodeEditorTypesRegister: React.FC<PropsWithChildren<unknown>> = ({
 
       monaco.languages.typescript.typescriptDefaults.setCompilerOptions({
         ...typescriptCompilerOptions,
-        noLib: true,
+        lib: ['es6', 'es2020'],
         moduleResolution:
           monaco.languages.typescript.ModuleResolutionKind.NodeJs,
         target: monaco.languages.typescript.ScriptTarget.ES2020,
@@ -49,7 +49,7 @@ const CodeEditorTypesRegister: React.FC<PropsWithChildren<unknown>> = ({
       );
 
       monaco.languages.typescript.typescriptDefaults.addExtraLib(
-        `module.exports = { Engine: engine, EngineAdapter: engineAdapter };`,
+        `module.exports = { Engine: engine, EngineAdapter: engineAdapter, EngineTypes: engineTypes };`,
         'file:///node_modules/engine/index.ts'
       );
 

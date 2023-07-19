@@ -1,6 +1,7 @@
 import { transpile } from 'typescript';
 import * as engine from '../Engine';
 import * as engineAdapter from '../EngineAdapter';
+import * as engineTypes from '../../../engine-types';
 
 import {
   EngineInputMessageNames,
@@ -20,11 +21,20 @@ const loadCode = async (codeString: string): Promise<void> => {
 
     // eslint-disable-next-line no-eval
     eval(`\
-          function externalCode(depInjections) {
-            const { engine, engineAdapter } = depInjections;
+          function externalCode(engine) {
+            var Module = require('module');
+            var originalRequire = Module.prototype.require;
+
+            Module.prototype.require = function(){
+              if (arguments[0] === "engine") {
+                return engine;
+              }
+
+              return originalRequire.apply(this, arguments);
+            };
 
             ${jsCode}
-          };`);
+          }; global.externalCode = externalCode;`);
 
     try {
       await engineAdapter.stopEngine();
@@ -51,7 +61,11 @@ const loadCode = async (codeString: string): Promise<void> => {
     try {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      externalCode({ engineAdapter, engine });
+      global.externalCode({
+        EngineAdapter: engineAdapter,
+        Engine: engine,
+        EngineTypes: engineTypes,
+      });
       previousRunningCode = codeString;
     } catch (err) {
       console.log('Code execution error');
