@@ -1,4 +1,3 @@
-import { transpile } from 'typescript';
 import * as engine from '../Engine';
 import * as engineAdapter from '../EngineAdapter';
 import * as engineTypes from '../../../engine-types';
@@ -16,9 +15,6 @@ class CodeLoadingFailed extends Error {}
 
 const loadCode = async (codeString: string): Promise<void> => {
   try {
-    // TODO: Transpile this thing on the UI, or inside a UI worker or anywhere outside engine or main thread.
-    const jsCode = transpile(codeString);
-
     // eslint-disable-next-line no-eval
     eval(`\
           function externalCode(engine) {
@@ -33,7 +29,7 @@ const loadCode = async (codeString: string): Promise<void> => {
               return originalRequire.apply(this, arguments);
             };
 
-            ${jsCode}
+            ${codeString}
           }; global.externalCode = externalCode;`);
 
     try {
