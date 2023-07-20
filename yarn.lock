@@ -1039,6 +1039,11 @@
   resolved "https://registry.yarnpkg.com/@rehooks/local-storage/-/local-storage-2.4.4.tgz#ccf40f60c2dcbab86dc88f9e3ea898d1fb8bea2d"
   integrity sha512-zE+kfOkG59n/1UTxdmbwktIosclr67Nlbf2MzUJ9mNtCSypVscNHeD1qT6JCSo5Pjj8DO893IKWNLJqKKzDL/Q==
 
+"@rollup/browser@^3.26.3":
+  version "3.26.3"
+  resolved "https://registry.yarnpkg.com/@rollup/browser/-/browser-3.26.3.tgz#c182a62f6a3b76cc7ea26475dbf429f7d2d68a85"
+  integrity sha512-NIeyD3o50DeC7BGV1COqNk27rK26XPxzYsPCFzqLVhPZtEbQG0nFLCK9I1+bP7VVqcFubrFTjSYt3cg4jfRUVg==
+
 "@sinclair/typebox@^0.23.3":
   version "0.23.5"
   resolved "https://registry.npmjs.org/@sinclair/typebox/-/typebox-0.23.5.tgz"

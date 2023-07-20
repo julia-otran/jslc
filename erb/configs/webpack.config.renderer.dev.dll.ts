@@ -1,15 +1,14 @@
+import { merge } from 'webpack-merge';
+import path from 'path';
+import webpack from 'webpack';
+import baseConfig from './webpack.config.base';
+import checkNodeEnv from '../scripts/check-node-env';
+import { dependencies } from '../../package.json';
 /**
  * Builds the DLL for development electron renderer process
  */
-
-import webpack from 'webpack';
-import path from 'path';
-import { merge } from 'webpack-merge';
-import baseConfig from './webpack.config.base';
-import webpackPaths from './webpack.paths';
-import { dependencies } from '../../package.json';
-import checkNodeEnv from '../scripts/check-node-env';
 import rendererModules from './webpack.config.renderer.dev';
+import webpackPaths from './webpack.paths';
 
 checkNodeEnv('development');
 

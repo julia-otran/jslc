@@ -34,7 +34,7 @@ const CodeEditorTypesRegister: React.FC<PropsWithChildren<unknown>> = ({
         moduleResolution:
           monaco.languages.typescript.ModuleResolutionKind.NodeJs,
         target: monaco.languages.typescript.ScriptTarget.ES2020,
-        module: monaco.languages.typescript.ModuleKind.CommonJS,
+        module: monaco.languages.typescript.ModuleKind.ES2015,
         allowNonTsExtensions: true,
       });
 

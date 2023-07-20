@@ -13,7 +13,9 @@ import useLocalStorage from '@rehooks/local-storage';
 import { CODE_EDITOR_CONTEXT } from '../../constants';
 import { CodeEditorContext } from '../../types';
 import { ModelActionType } from '../../reducers/models';
+import { compileCode } from '../../utils/rollup';
 import { models as modelsReducer } from '../../reducers';
+import { useEngineCode } from '../../../EngineIntegration';
 
 const ContextProvider = CODE_EDITOR_CONTEXT.Provider;
 
@@ -62,11 +64,18 @@ const CodeEditorProvider: React.FC<PropsWithChildren<unknown>> = ({
     setEditorCode(editorCodeToSave);
   }, [models, setEditorCode]);
 
+  const [_, setEngineCode] = useEngineCode();
+
   const runCode = useCallback(() => {
-    console.log(
-      'Run the code. I really dont know how transform all these files into one'
-    );
-  }, []);
+    compileCode(models)
+      .then((code) => {
+        setEngineCode(code);
+        return undefined;
+      })
+      .catch((e) => {
+        console.error('Failed compiling engine code', e);
+      });
+  }, [models, setEngineCode]);
 
   const providerValue: CodeEditorContext = useMemo(
     () => ({

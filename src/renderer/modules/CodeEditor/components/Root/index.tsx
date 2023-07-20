@@ -1,31 +1,19 @@
-import * as monaco from 'monaco-editor';
-
 import { Button, Stack } from '@mui/material';
 import React, { useCallback, useState } from 'react';
+import { useRunCode, useSaveEditorCode } from '../../hooks';
 
 import AddFileDialog from '../AddFileDialog';
 import Editor from '../Editor';
 import Navigator from '../Navigator';
-import { useEngineCode } from '../../../EngineIntegration';
-import { useSaveEditorCode } from '../../hooks';
 
 const CodeEditor: React.FC = () => {
-  const [_, setEngineCode] = useEngineCode();
-
   const saveEditorCode = useSaveEditorCode();
+  const runCode = useRunCode();
 
   const handleRunCode = useCallback(() => {
     saveEditorCode();
-
-    monaco.languages.typescript
-      .getTypeScriptWorker()
-      .then((getWorkerForUri) =>
-        getWorkerForUri(monaco.Uri.parse('file:///src/index.ts'))
-      )
-      .then((proxy) => proxy.getEmitOutput('file:///src/index.ts'))
-      .then((outputs) => setEngineCode(outputs.outputFiles[0].text))
-      .catch((e) => console.error('Failed getting transpiled code!', e));
-  }, [setEngineCode, saveEditorCode]);
+    runCode();
+  }, [runCode, saveEditorCode]);
 
   const [addModelOpen, setAddModelOpen] = useState(false);
 

@@ -31,6 +31,10 @@ export const useSetCurrentModel = (): CodeEditorContext['setCurrentModel'] => {
   return useCodeEditorContext().setCurrentModel;
 };
 
+export const useRunCode = (): CodeEditorContext['runCode'] => {
+  return useCodeEditorContext().runCode;
+};
+
 export type UseModelExistsCallback = (name: string) => boolean;
 
 export const useModelExists = (): UseModelExistsCallback => {

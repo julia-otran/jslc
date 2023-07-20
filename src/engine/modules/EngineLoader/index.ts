@@ -17,17 +17,7 @@ const loadCode = async (codeString: string): Promise<void> => {
   try {
     // eslint-disable-next-line no-eval
     eval(`\
-          function externalCode(engine) {
-            var Module = require('module');
-            var originalRequire = Module.prototype.require;
-
-            Module.prototype.require = function(){
-              if (arguments[0] === "engine") {
-                return engine;
-              }
-
-              return originalRequire.apply(this, arguments);
-            };
+          function externalCode(depInjection) {
 
             ${codeString}
           }; global.externalCode = externalCode;`);
