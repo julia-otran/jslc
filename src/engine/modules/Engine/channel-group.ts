@@ -1,3 +1,4 @@
+import { v4 as uuidV4 } from 'uuid';
 import {
   ChannelMap,
   ChannelMixMapWithDefault,
@@ -8,7 +9,6 @@ import {
 } from '../../../engine-types';
 
 import { getDefaultUniverse } from './universes';
-import { v4 as uuidV4 } from 'uuid';
 
 export const getOutput = (
   universe: UniverseOrDefault,

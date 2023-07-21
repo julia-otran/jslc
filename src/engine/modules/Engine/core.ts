@@ -1,3 +1,5 @@
+import { flatten, groupBy, map, pipe, reduce, sort } from 'ramda';
+import { v4 as uuidV4 } from 'uuid';
 import {
   ChannelMap,
   ChannelMix,
@@ -23,11 +25,8 @@ import {
 } from '../../../engine-types';
 import { channelValueToValue, sleep, valueToChannelValue } from './utils';
 import { dmxChannels, getInputDeviceIds, readFromInputDevice } from './devices';
-import { flatten, groupBy, map, pipe, reduce, sort } from 'ramda';
 import { getChannelLSB, getChannelMSB } from './channel-lsb';
 import { getDefaultUniverse, writeToUniverse } from './universes';
-
-import { v4 as uuidV4 } from 'uuid';
 
 interface OutputFunction<TReturn = any> {
   token: Token;
@@ -528,6 +527,7 @@ export const startProcessing = async () => {
     try {
       consumeInputDevices();
       const results = processUniverses();
+
       // eslint-disable-next-line no-await-in-loop
       await writeDmxResults(results);
 
@@ -552,7 +552,7 @@ export const startProcessing = async () => {
         console.error(error);
 
         // eslint-disable-next-line no-await-in-loop
-        await sleep(10);
+        await sleep(100);
       }
     }
   }

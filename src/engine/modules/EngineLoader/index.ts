@@ -34,6 +34,7 @@ const loadCode = async (codeString: string): Promise<void> => {
       engineAdapter.clearDeviceChangeCallbacks();
       engine.clearProcesses();
       engine.stopProcessAllUniverses();
+      engine.clearUniverses();
       engine.clearGeneratorQueues();
       engine.clearDevicesChangeCallbacks();
 

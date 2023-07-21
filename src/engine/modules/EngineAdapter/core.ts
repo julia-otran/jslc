@@ -8,6 +8,7 @@ import {
 import {
   exportLocalConnValues,
   importLocalConnValues,
+  isProcessing,
   startProcessing,
   stopProcessing,
 } from '../Engine';
@@ -18,7 +19,6 @@ import {
 } from './messaging';
 
 let engineState: EngineState | null | undefined;
-let shouldStartEngine = false;
 
 const beginEngine = () => {
   const { localConnValues } = engineState || {};
@@ -38,32 +38,29 @@ registerMessageListener<EngineInitInputMessage>(
     } else {
       engineState = null;
     }
-
-    if (shouldStartEngine) {
-      shouldStartEngine = false;
-      beginEngine();
-    }
   }
 );
 
 export const stopEngine = async (): Promise<void> => {
-  engineState = {
-    localConnValues: exportLocalConnValues(),
-  };
-
   unregisterMessageListener(EngineInputMessageNames.STOP_ENGINE);
 
-  await stopProcessing();
+  if (isProcessing()) {
+    engineState = {
+      localConnValues: exportLocalConnValues(),
+    };
+
+    await stopProcessing();
+  }
 
   sendMessage<EngineStoppedOutputMessage>({
     message: EngineOutputMessageNames.ENGINE_STOPPED,
-    data: engineState ?? { localConnValues: {} },
+    data: engineState,
   });
 };
 
 export const startEngine = (): void => {
-  const stopMessageListener = () => {
-    stopEngine();
+  const stopMessageListener = async () => {
+    await stopEngine();
     engineState = undefined;
   };
 
@@ -72,9 +69,5 @@ export const startEngine = (): void => {
     stopMessageListener
   );
 
-  if (engineState === undefined) {
-    shouldStartEngine = true;
-  } else {
-    beginEngine();
-  }
+  beginEngine();
 };

@@ -1,3 +1,5 @@
+import { all as allR, any } from 'ramda';
+import { v4 as uuidV4 } from 'uuid';
 import {
   ChannelMixMap,
   ChannelMixMapWithDefault,
@@ -6,10 +8,8 @@ import {
   ProcessCallbackParams,
   Task,
 } from '../../../engine-types';
-import { all as allR, any } from 'ramda';
 
 import { addRootProcess } from './core';
-import { v4 as uuidV4 } from 'uuid';
 
 export enum EffectType {
   WAIT_NEXT_FRAME = 'WAIT_NEXT_FRAME',
@@ -704,7 +704,7 @@ export const processGenerator = function* <
         controls = yield;
       }
     } else if (isPushValuesEffect(result.value)) {
-      pushValues(result.value.effectData.values);
+      controls.pushValues(result.value.effectData.values);
     } else if (isReadFromInputDeviceEffect(result.value)) {
       forwardParam = controls.readFromInputDevice(
         result.value.effectData.inputDeviceId

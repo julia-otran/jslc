@@ -120,7 +120,7 @@ export type EngineState = {
   localConnValues: LocalConnValues;
 };
 
-export type EngineStoppedOutputMessageData = EngineState;
+export type EngineStoppedOutputMessageData = EngineState | null | undefined;
 
 export type EngineStoppedOutputMessage = EngineOutputMessage<
   EngineOutputMessageNames.ENGINE_STOPPED,

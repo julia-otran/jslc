@@ -1,3 +1,4 @@
+import { v4 as uuidV4 } from 'uuid';
 import {
   DMXData,
   DmxOutputDeviceId,
@@ -19,8 +20,6 @@ import {
   unregisterInputDevice,
 } from '../Engine';
 import { registerMessageListener, sendMessage } from './messaging';
-
-import { v4 as uuidV4 } from 'uuid';
 
 interface RegisteredInputDevices {
   midi: string[];

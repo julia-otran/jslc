@@ -164,7 +164,7 @@ export const stopEngine = (): Promise<void> => {
   const currentWorker = worker;
 
   if (currentWorker) {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         console.error('Engine not stopped in 10s');
 
@@ -174,10 +174,17 @@ export const stopEngine = (): Promise<void> => {
       currentWorker.on('message', (message: EngineOutputMessage) => {
         if (message.message === EngineOutputMessageNames.ENGINE_STOPPED) {
           clearTimeout(timeoutId);
+          console.log('Engine stopped...');
 
-          localStorage.setItem('ENGINE_STATE', JSON.stringify(message.data));
+          if (message.data) {
+            console.log(message.data);
+            localStorage.setItem('ENGINE_STATE', JSON.stringify(message.data));
+          }
 
-          resolve(currentWorker.terminate().then(() => undefined));
+          currentWorker
+            .terminate()
+            .then(() => resolve(undefined))
+            .catch(reject);
         }
       });
 
