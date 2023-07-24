@@ -146,6 +146,7 @@ export interface IncrementToggleControlMapParams {
   controlNumber: number;
   currentValueProvider(): number;
   activeProvider?(): boolean;
+  minValue?: number;
   maxValue?: number;
 }
 
@@ -156,6 +157,7 @@ export const incrementToggleControlMap =
     currentValueProvider,
     activeProvider,
     maxValue,
+    minValue,
   }: IncrementToggleControlMapParams): AssignLocalConnWithMidiControlMapParam =>
   (message, callback) => {
     if (activeProvider !== undefined) {
@@ -174,6 +176,8 @@ export const incrementToggleControlMap =
       const newVal = currentValueProvider() + 1;
       if (maxValue === undefined || newVal <= maxValue) {
         callback(newVal);
+      } else if (maxValue !== undefined && minValue !== undefined) {
+        callback(minValue);
       }
     }
   };
@@ -184,6 +188,7 @@ export interface DecrementToggleControlMapParams {
   currentValueProvider(): number;
   activeProvider?(): boolean;
   minValue?: number;
+  maxValue?: number;
 }
 
 export const decrementToggleControlMap =
@@ -193,6 +198,7 @@ export const decrementToggleControlMap =
     currentValueProvider,
     activeProvider,
     minValue,
+    maxValue,
   }: DecrementToggleControlMapParams): AssignLocalConnWithMidiControlMapParam =>
   (message, callback) => {
     if (activeProvider !== undefined) {
@@ -211,6 +217,8 @@ export const decrementToggleControlMap =
       const newVal = currentValueProvider() - 1;
       if (minValue === undefined || newVal >= minValue) {
         callback(newVal);
+      } else if (minValue !== undefined && maxValue !== undefined) {
+        callback(maxValue);
       }
     }
   };

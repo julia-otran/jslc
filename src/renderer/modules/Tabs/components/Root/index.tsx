@@ -29,7 +29,7 @@ const Tabs = ({ onChange, pageCount }: Props): JSX.Element => {
   const [tabNumber] = useLocalConn('control-page');
 
   useEffect(() => {
-    if (tabNumber !== undefined && tabNumber <= pageCount) {
+    if (tabNumber !== undefined && tabNumber <= pageCount + 1) {
       setTab(ROUTER_PATHS_PARAMS.CTRL_PAGE(tabNumber));
     }
   }, [tabNumber, pageCount]);

@@ -56,6 +56,8 @@ const addProcess = <TReturn>(
   const token = uuidV4();
   const status = { stopped: false, paused: false };
 
+  process.next();
+
   outputFunctions.push({
     gcCount: 0,
     done: false,
@@ -466,21 +468,10 @@ const processUniverses = (): DmxResults => {
   return results;
 };
 
-let isWriting = false;
 let writeFrames = 0;
 let lastWriteRunDate: Date = new Date();
-let writePromise: Promise<void> | undefined;
 
 const writeDmxResults = async (results: DmxResults): Promise<void> => {
-  if (isWriting) {
-    await Promise.race([sleep(25), writePromise]);
-
-    if (isWriting) {
-      return;
-    }
-  }
-
-  isWriting = true;
   writeFrames += 1;
 
   if (writeFrames > 100) {
@@ -495,19 +486,13 @@ const writeDmxResults = async (results: DmxResults): Promise<void> => {
   }
 
   if (results.length === 0) {
-    writePromise = sleep(25);
-  } else {
-    writePromise = Promise.allSettled(
-      results.map((r) => writeToUniverse(r.universe, r.data))
-    ).then(() => {
-      return undefined;
-    });
+    return sleep(25);
   }
 
-  // eslint-disable-next-line promise/catch-or-return
-  writePromise.finally(() => {
-    isWriting = false;
-    writePromise = undefined;
+  return Promise.allSettled(
+    results.map((r) => writeToUniverse(r.universe, r.data))
+  ).then(() => {
+    return undefined;
   });
 };
 
@@ -522,6 +507,7 @@ export const startProcessing = async () => {
 
   let lastRunDate = new Date();
   let frames = 0;
+  let writePromise: Promise<void> = Promise.resolve();
 
   while (process) {
     try {
@@ -529,7 +515,8 @@ export const startProcessing = async () => {
       const results = processUniverses();
 
       // eslint-disable-next-line no-await-in-loop
-      await writeDmxResults(results);
+      await writePromise;
+      writePromise = writeDmxResults(results);
 
       errorCount = 0;
       frames += 1;
