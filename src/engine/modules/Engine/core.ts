@@ -1,5 +1,3 @@
-import { flatten, groupBy, map, pipe, reduce, sort } from 'ramda';
-import { v4 as uuidV4 } from 'uuid';
 import {
   ChannelMap,
   ChannelMix,
@@ -25,8 +23,11 @@ import {
 } from '../../../engine-types';
 import { channelValueToValue, sleep, valueToChannelValue } from './utils';
 import { dmxChannels, getInputDeviceIds, readFromInputDevice } from './devices';
+import { flatten, groupBy, map, pipe, reduce, sort } from 'ramda';
 import { getChannelLSB, getChannelMSB } from './channel-lsb';
 import { getDefaultUniverse, writeToUniverse } from './universes';
+
+import { v4 as uuidV4 } from 'uuid';
 
 interface OutputFunction<TReturn = any> {
   token: Token;
@@ -508,14 +509,37 @@ export const startProcessing = async () => {
   let lastRunDate = new Date();
   let frames = 0;
   let writePromise: Promise<void> = Promise.resolve();
+  let latency = 0;
+  let latencyAvg = 0;
 
   while (process) {
     try {
-      consumeInputDevices();
-      const results = processUniverses();
+      let results: DmxResults = [];
 
+      const beforeTime = new Date().getTime();
+      let deltaTime = 0;
+
+      do {
+        const currentTime = new Date().getTime();
+        deltaTime = currentTime - beforeTime;
+      } while (deltaTime <= latencyAvg * 2 && process);
+
+      consumeInputDevices();
+      results = processUniverses();
+
+      const writeInit = new Date().getTime();
       // eslint-disable-next-line no-await-in-loop
       await writePromise;
+      const writeEnd = new Date().getTime();
+
+      latency = writeEnd - writeInit;
+
+      if (latencyAvg === 0) {
+        latencyAvg = latency;
+      } else {
+        latencyAvg = (latencyAvg + latency) / 2.0;
+      }
+
       writePromise = writeDmxResults(results);
 
       errorCount = 0;
