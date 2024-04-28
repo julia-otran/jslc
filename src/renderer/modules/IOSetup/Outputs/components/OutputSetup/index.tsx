@@ -65,14 +65,14 @@ const OutputSetup: React.FC<OutputSetupProps> = ({
             connectedLinuxDmxOutputs={connectedOutputs.linuxDMX}
           />
         )}
-
-        {outputType === 'ART_NET' && (
-          <ArtNetOutput
-            index={index}
-            artNetNetworkInterfaces={connectedOutputs.artNetNetworkInterfaces}
-          />
-        )}
       </Box>
+
+      {outputType === 'ART_NET' && (
+        <ArtNetOutput
+          index={index}
+          artNetNetworkInterfaces={connectedOutputs.artNetNetworkInterfaces}
+        />
+      )}
     </Stack>
   );
 };

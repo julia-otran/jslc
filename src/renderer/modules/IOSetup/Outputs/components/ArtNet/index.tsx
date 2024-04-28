@@ -6,7 +6,8 @@ import {
   Select,
   TextField,
 } from '@mui/material';
-import { useFormContext } from 'react-hook-form';
+import { Controller, useFormContext } from 'react-hook-form';
+import { useMemo } from 'react';
 import { IOState, IOStateInfo } from '../../../../EngineIntegration';
 
 interface ArtNetOutputProps {
@@ -26,28 +27,44 @@ const ArtNetOutput: React.FC<ArtNetOutputProps> = ({
   index,
   artNetNetworkInterfaces,
 }) => {
-  const { register, watch } = useFormContext<IOStateInfo>();
+  const { register, watch, control } = useFormContext<IOStateInfo>();
 
+  const currentPort = watch(`outputs.${index}.port`);
   const currentIP = watch(`outputs.${index}.ip`);
   const currentNet = watch(`outputs.${index}.net`);
   const currentSubnet = watch(`outputs.${index}.subnet`);
   const currentUniverse = watch(`outputs.${index}.universe`);
 
+  const broadcastAddresses = useMemo(
+    () => artNetNetworkInterfaces.map((i) => i.broadcast),
+    [artNetNetworkInterfaces]
+  );
+
   return (
-    <Box>
-      <Box sx={{ display: 'flex' }}>
-        <FormControl sx={{ flex: '2', marginLeft: '16px' }}>
-          <Autocomplete
-            disablePortal
-            options={artNetNetworkInterfaces.map((i) => i.broadcast)}
-            renderInput={(params) => (
-              <TextField
+    <Box sx={{ width: '100%' }}>
+      <Box sx={{ display: 'flex', marginBottom: '16px', alignItems: 'center' }}>
+        <FormControl sx={{ flex: '1' }}>
+          <Controller
+            control={control}
+            name={`outputs.${index}.ip`}
+            render={({ field }) => (
+              <Autocomplete
                 // eslint-disable-next-line react/jsx-props-no-spreading
-                {...params}
-                label="Destination IP"
-                type="string"
-                defaultValue={currentIP}
-                inputProps={register(`outputs.${index}.ip`)}
+                {...field}
+                onChange={(_, value) => field.onChange(value)}
+                value={currentIP || ''}
+                disablePortal
+                freeSolo
+                options={broadcastAddresses}
+                renderInput={(params) => (
+                  <TextField
+                    // eslint-disable-next-line react/jsx-props-no-spreading
+                    {...params}
+                    label="Destination IP"
+                    type="string"
+                    defaultValue={currentIP || '255.255.255.255'}
+                  />
+                )}
               />
             )}
           />
@@ -57,7 +74,7 @@ const ArtNetOutput: React.FC<ArtNetOutputProps> = ({
           <TextField
             label="UDP Port"
             type="number"
-            defaultValue={6454}
+            defaultValue={currentPort || 6454}
             inputProps={register(`outputs.${index}.port`, {
               min: 1,
               max: 65535,
@@ -79,15 +96,15 @@ const ArtNetOutput: React.FC<ArtNetOutputProps> = ({
       </Box>
 
       <Box sx={{ display: 'flex' }}>
-        <FormControl sx={{ flex: '1', marginLeft: '16px' }}>
+        <FormControl sx={{ flex: '1' }}>
           <TextField
             label="Net"
             type="number"
-            defaultValue={currentNet}
+            defaultValue={currentNet || 0}
             inputProps={register(`outputs.${index}.net`, { min: 0, max: 127 })}
           />
         </FormControl>
-        <FormControl sx={{ flex: '1' }}>
+        <FormControl sx={{ flex: '1', marginLeft: '16px' }}>
           <Select
             label="Subnet"
             inputProps={register(`outputs.${index}.subnet`)}

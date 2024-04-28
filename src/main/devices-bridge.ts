@@ -480,11 +480,11 @@ const updateLogicalDevicesStatus = (): void => {
 };
 
 export const setLogicalDevicesInfo = (newInfo: LogicalDevicesInfo): void => {
-  logicalDevices.outputs.mockDMX = clone(newInfo.mockDMXOutputs);
-  logicalDevices.outputs.linuxDMX = clone(newInfo.linuxDMXOutputs);
-  logicalDevices.outputs.artNet = clone(newInfo.artNetOutputs);
-  logicalDevices.inputs.midi = clone(newInfo.midiInputs);
-  logicalDevices.inputs.artNet = clone(newInfo.artNetInputs);
+  logicalDevices.outputs.mockDMX = clone(newInfo.mockDMXOutputs || []);
+  logicalDevices.outputs.linuxDMX = clone(newInfo.linuxDMXOutputs || {});
+  logicalDevices.outputs.artNet = clone(newInfo.artNetOutputs || {});
+  logicalDevices.inputs.midi = clone(newInfo.midiInputs || {});
+  logicalDevices.inputs.artNet = clone(newInfo.artNetInputs || {});
 
   updateArtNetOutputs();
   updateLogicalDevicesStatus();
