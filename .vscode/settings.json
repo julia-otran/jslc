@@ -14,7 +14,7 @@
   "javascript.format.enable": false,
   "typescript.format.enable": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
+    "source.fixAll.eslint": "explicit"
   },
   "search.exclude": {
     ".git": true,

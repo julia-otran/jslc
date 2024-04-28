@@ -1,10 +1,11 @@
 import { mapObjIndexed, reduce } from 'ramda';
-import { useEffect, useCallback, useState } from 'react';
-import { v4 as uuidV4 } from 'uuid';
+import { useCallback, useEffect, useState } from 'react';
 
+import { v4 as uuidV4 } from 'uuid';
 import type {
-  IOState as IOStateIn,
   ArtNetInputAddress,
+  ArtNetOutputAddress,
+  IOState as IOStateIn,
 } from '../../../main/devices-bridge';
 
 export interface IOStateInfoInputArtNet extends ArtNetInputAddress {
@@ -29,9 +30,18 @@ export interface IOStateInfoOutputMockDMX {
   name: string;
 }
 
+export interface IOStateInfoOutputArtNetDMX extends ArtNetOutputAddress {
+  type: 'ART_NET';
+  name: string;
+}
+
 export type IOStateInfo = {
   inputs: (IOStateInfoInputArtNet | IOStateInfoInputMidi)[];
-  outputs: (IOStateInfoOutputLinuxDMX | IOStateInfoOutputMockDMX)[];
+  outputs: (
+    | IOStateInfoOutputLinuxDMX
+    | IOStateInfoOutputMockDMX
+    | IOStateInfoOutputArtNetDMX
+  )[];
 };
 
 export type IOState = {
@@ -88,6 +98,17 @@ const fromEngineToUI = (inState: IOStateIn): IOState => {
             inState.info.linuxDMXOutputs
           )
         ),
+        ...Object.values(
+          mapObjIndexed(
+            (value, key) =>
+              ({
+                type: 'ART_NET',
+                name: key,
+                ...value,
+              } as IOStateInfoOutputArtNetDMX),
+            inState.info.artNetOutputs
+          )
+        ),
       ],
     },
   };
@@ -100,6 +121,23 @@ const fromUiToEngine = (ioState: IOStateInfo): IOStateIn['info'] => ({
     ioState.outputs.filter(
       ({ type }) => type === 'LINUX_DMX'
     ) as IOStateInfoOutputLinuxDMX[]
+  ),
+  artNetOutputs: reduce(
+    (acc, value) => ({
+      ...acc,
+      [value.name]: {
+        ip: value.ip,
+        net: value.net,
+        subnet: value.subnet,
+        universe: value.subnet,
+        port: value.port,
+        resendIntervalMs: value.resendIntervalMs,
+      },
+    }),
+    {} as IOStateIn['info']['artNetOutputs'],
+    ioState.outputs.filter(
+      ({ type }) => type === 'ART_NET'
+    ) as IOStateInfoOutputArtNetDMX[]
   ),
   mockDMXOutputs: ioState.outputs
     .filter(({ type }) => type === 'MOCK_DMX')

@@ -1,10 +1,10 @@
-import { Stack, Button } from '@mui/material';
+import { Button, Stack } from '@mui/material';
 import { useFieldArray, useFormContext } from 'react-hook-form';
+
 import { FormattedMessage } from 'react-intl';
 import { v4 as uuidV4 } from 'uuid';
-
-import { IOStateInfo, IOState } from '../../../../EngineIntegration';
 import OutputSetup from '../OutputSetup';
+import { IOState, IOStateInfo } from '../../../../EngineIntegration';
 
 interface IOSetupOutputsProps {
   connectedOutputs: IOState['connectedDevices']['outputs'];
@@ -35,7 +35,7 @@ const IOSetupOutputs: React.FC<IOSetupOutputsProps> = ({
           remove={remove}
           key={field.id}
           index={index}
-          connectedLinuxDmxOutputs={connectedOutputs.linuxDMX}
+          connectedOutputs={connectedOutputs}
         />
       ))}
     </Stack>

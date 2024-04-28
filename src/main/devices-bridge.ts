@@ -1,14 +1,25 @@
 import { FileHandle, open, readdir } from 'fs/promises';
 import { clone, equals, map } from 'ramda';
 
+import broadcastAddress from 'broadcast-address';
 import dmxlib from 'dmxnet';
 import { ipcMain } from 'electron';
 import midi from 'midi';
+import { networkInterfaces } from 'os';
 
 export interface ArtNetInputAddress {
   subnet: number;
   net: number;
   universe: number;
+}
+
+export interface ArtNetOutputAddress {
+  ip: string;
+  net: number;
+  subnet: number;
+  universe: number;
+  port: number;
+  resendIntervalMs: number;
 }
 
 export interface LogicalDevices {
@@ -19,7 +30,7 @@ export interface LogicalDevices {
   };
   outputs: {
     mockDMX: Array<string>;
-    artNet: Array<string>;
+    artNet: Record<string, ArtNetOutputAddress>;
     linuxDMX: Record<string, number>;
   };
 }
@@ -27,7 +38,7 @@ export interface LogicalDevices {
 const logicalDevices: LogicalDevices = {
   status: { missingDevices: [], hasOutput: false },
   inputs: { midi: {}, artNet: {} },
-  outputs: { mockDMX: [], artNet: [], linuxDMX: {} },
+  outputs: { mockDMX: [], artNet: {}, linuxDMX: {} },
 };
 
 // Linux DMX Outputs ------------------
@@ -251,13 +262,105 @@ const internalOpenArtNetInput = (
 };
 
 // ArtNet Output Devices -------------
-// TODO
+type ArtNetOutputDevice = dmxlib.sender;
+
+let artNetNetworkInterfaces: ArtNetNetworkInterface[] = [];
+const openArtNetOutputs: Record<string, ArtNetOutputDevice> = {};
+
+const findOutputArtNetDevices = async (): Promise<void> => {
+  const interfaceEntries = Object.entries(networkInterfaces());
+
+  interfaceEntries.forEach((interfaceEntry) => {
+    const [name, interfaces] = interfaceEntry;
+
+    (interfaces || [])
+      .filter(Boolean)
+      .filter(
+        (ni) =>
+          artNetNetworkInterfaces.find(
+            (ani) => ni && ani.ip === ni.address && ani.netmask === ni.netmask
+          ) === undefined
+      )
+      .forEach((ni) => {
+        if (ni) {
+          artNetNetworkInterfaces.push({
+            ip: ni.address,
+            netmask: ni.netmask,
+            broadcast: broadcastAddress(name, ni.address),
+          });
+        }
+      });
+  });
+
+  const allInterfaces = Object.values(networkInterfaces()).flat();
+
+  artNetNetworkInterfaces = artNetNetworkInterfaces.filter(
+    (ani) =>
+      allInterfaces.find(
+        (ni) => ni && ni.address === ani.ip && ni.netmask === ani.netmask
+      ) !== undefined
+  );
+};
+
+const internalOpenArtNetOutput = (
+  name: string,
+  address: ArtNetOutputAddress
+) => {
+  if (openArtNetOutputs[name]) {
+    delete openArtNetOutputs[name];
+  }
+
+  openArtNetOutputs[name] = dmxnet.newSender({
+    ip: address.ip,
+    net: address.net,
+    subnet: address.subnet,
+    universe: address.universe,
+    port: address.port,
+    base_refresh_interval: address.resendIntervalMs,
+  });
+};
+
+const updateArtNetOutputs = () => {
+  Object.keys(logicalDevices.outputs.artNet).forEach((device) => {
+    internalOpenArtNetOutput(device, logicalDevices.outputs.artNet[device]);
+  });
+
+  Object.keys(openArtNetOutputs)
+    .filter(
+      (outputName) =>
+        !Object.keys(logicalDevices.outputs.artNet).includes(outputName)
+    )
+    .forEach((unusedOutput) => delete openArtNetOutputs[unusedOutput]);
+};
+
+const writeToArtNetDMXOutputDevice = (
+  name: string,
+  dmxData: Uint8Array
+): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const sender = openArtNetOutputs[name];
+
+    if (!sender) {
+      reject(new Error('ArtNet sender not opened'));
+    }
+
+    let index = 0;
+
+    dmxData.forEach((chValue) => {
+      sender.prepChannel(index, chValue);
+      index += 1;
+    });
+
+    resolve();
+  });
+};
 
 // All I/O Related -------------------
 
 const findConnectedDevices = async (): Promise<void> => {
   await findOutputLinuxDmxDevices();
   await findMidiInputs();
+  await findOutputArtNetDevices();
 };
 
 export interface LogicalDeviceIds {
@@ -276,7 +379,7 @@ export const getLogicalDevicesIds = (): LogicalDeviceIds => {
       ...Object.keys(logicalDevices.outputs.linuxDMX).filter(
         (id) => !logicalDevices.status.missingDevices.includes(id)
       ),
-      ...logicalDevices.outputs.artNet,
+      ...Object.keys(logicalDevices.outputs.artNet),
       ...logicalDevices.outputs.mockDMX,
     ],
   };
@@ -287,6 +390,7 @@ export interface LogicalDevicesInfo {
   mockDMXOutputs: string[];
   midiInputs: Record<string, string>;
   artNetInputs: Record<string, ArtNetInputAddress>;
+  artNetOutputs: Record<string, ArtNetOutputAddress>;
 }
 
 export const getLogicalDevicesInfo = (): LogicalDevicesInfo => {
@@ -294,6 +398,10 @@ export const getLogicalDevicesInfo = (): LogicalDevicesInfo => {
     mockDMXOutputs: logicalDevices.outputs.mockDMX,
     linuxDMXOutputs: logicalDevices.outputs.linuxDMX,
     midiInputs: logicalDevices.inputs.midi,
+    artNetOutputs: map(
+      (artNetOutput) => ({ ...artNetOutput }),
+      logicalDevices.outputs.artNet
+    ),
     artNetInputs: map(
       (artNetInput) => ({
         subnet: artNetInput.subnet,
@@ -348,6 +456,14 @@ const updateLogicalDevicesStatus = (): void => {
     }
   });
 
+  Object.keys(logicalDevices.outputs.artNet).forEach((deviceId) => {
+    if (openArtNetOutputs[deviceId]) {
+      hasOutput = true;
+    } else {
+      missingDevices.push(deviceId);
+    }
+  });
+
   Object.keys(logicalDevices.inputs.midi).forEach((midiInputId) => {
     const midiInputName = logicalDevices.inputs.midi[midiInputId];
 
@@ -366,8 +482,11 @@ const updateLogicalDevicesStatus = (): void => {
 export const setLogicalDevicesInfo = (newInfo: LogicalDevicesInfo): void => {
   logicalDevices.outputs.mockDMX = clone(newInfo.mockDMXOutputs);
   logicalDevices.outputs.linuxDMX = clone(newInfo.linuxDMXOutputs);
+  logicalDevices.outputs.artNet = clone(newInfo.artNetOutputs);
   logicalDevices.inputs.midi = clone(newInfo.midiInputs);
   logicalDevices.inputs.artNet = clone(newInfo.artNetInputs);
+
+  updateArtNetOutputs();
   updateLogicalDevicesStatus();
 };
 
@@ -394,6 +513,17 @@ export const writeToDmxOutputDevice = async (
 
   if (mockDmxDevice !== undefined) {
     await writeToMockOutput();
+  }
+
+  const artNetOutputDevice = logicalDevices.outputs.artNet[deviceId];
+
+  if (artNetOutputDevice !== undefined) {
+    try {
+      await writeToArtNetDMXOutputDevice(deviceId, dmxData);
+    } catch (error) {
+      updateLogicalDevicesStatus();
+      throw error;
+    }
   }
 };
 
@@ -434,6 +564,12 @@ export const initDeviceBridge = async () => {
 
 // User Interface Messaging
 
+export interface ArtNetNetworkInterface {
+  ip: string;
+  netmask: string;
+  broadcast: string;
+}
+
 export interface IOState {
   requestId: string;
   info: LogicalDevicesInfo;
@@ -444,6 +580,7 @@ export interface IOState {
     };
     outputs: {
       linuxDMX: string[];
+      artNetNetworkInterfaces: ArtNetNetworkInterface[];
     };
   };
 }
@@ -462,6 +599,7 @@ const replyIOState = (
       },
       outputs: {
         linuxDMX: openedLinuxDmxDevices.map((d) => d.id.toString()),
+        artNetNetworkInterfaces,
       },
     },
   };

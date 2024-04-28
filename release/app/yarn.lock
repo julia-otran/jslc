@@ -52,6 +52,13 @@ bindings@~1.5.0:
   dependencies:
     file-uri-to-path "1.0.0"
 
+broadcast-address@^1.0.2:
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/broadcast-address/-/broadcast-address-1.0.2.tgz#a8c6a70561140a51433a3a6549698215e0777e38"
+  integrity sha512-G9bslPECDbowXbH8+08zqBha14LtRofoTT6DUQxePXyv3AaU0It+vkhPq+tENJB0MNrC5fxPqpM7Fqk+vME/hA==
+  dependencies:
+    has-deep-value "1.1.0"
+
 color-convert@^1.9.3:
   version "1.9.3"
   resolved "https://registry.yarnpkg.com/color-convert/-/color-convert-1.9.3.tgz#bb71850690e1f136567de629d2d5471deda4c1e8"
@@ -126,6 +133,11 @@ graceful-fs@^4.1.11:
   version "4.2.10"
   resolved "https://registry.npmjs.org/graceful-fs/-/graceful-fs-4.2.10.tgz"
   integrity sha512-9ByhssR2fPVsNZj478qUUbKfmL0+t5BDVyjShtyZZLiK7ZDAArFFfopyOTj0M05wE2tJPisA4iTnnXl2YoPvOA==
+
+has-deep-value@1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/has-deep-value/-/has-deep-value-1.1.0.tgz#1982cdacbba4d345985ab00c5b23171626700129"
+  integrity sha512-vK01gd6Pkq/9aOZucinrI03+jt85gzkdEd3DHlOWcV25xEo222BkR5utJcbqJizJaLXVqUP42brXp98pm6jFNQ==
 
 imurmurhash@^0.1.4:
   version "0.1.4"

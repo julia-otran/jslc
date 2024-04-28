@@ -1,39 +1,35 @@
-import React from 'react';
-import { useFormContext } from 'react-hook-form';
 import {
+  Box,
+  Button,
   FormControl,
   InputLabel,
-  TextField,
-  Stack,
-  Select,
   MenuItem,
-  Button,
-  Box,
+  Select,
+  Stack,
+  TextField,
 } from '@mui/material';
-
 import DeleteIcon from '@mui/icons-material/Delete';
+import React from 'react';
+import { useFormContext } from 'react-hook-form';
+import { IOState, IOStateInfo } from '../../../../EngineIntegration';
 
-import { IOStateInfo } from '../../../../EngineIntegration';
+import ArtNetOutput from '../ArtNet';
+import LinuxDMX from '../LinuxDMX';
 
 interface OutputSetupProps {
   index: number;
-  connectedLinuxDmxOutputs: string[];
+  connectedOutputs: IOState['connectedDevices']['outputs'];
   remove(index: number): void;
 }
 
 const OutputSetup: React.FC<OutputSetupProps> = ({
   index,
-  connectedLinuxDmxOutputs,
+  connectedOutputs,
   remove,
 }) => {
   const { watch, register } = useFormContext<IOStateInfo>();
 
   const outputType = watch(`outputs.${index}.type`);
-  const linuxDmxSelectedDevice = watch(`outputs.${index}.device`);
-
-  const isLinuxDmxDeviceOffline =
-    outputType === 'LINUX_DMX' &&
-    !connectedLinuxDmxOutputs.includes(linuxDmxSelectedDevice);
 
   return (
     <Stack spacing={3}>
@@ -59,34 +55,22 @@ const OutputSetup: React.FC<OutputSetupProps> = ({
           >
             <MenuItem value="LINUX_DMX">Linux DMX</MenuItem>
             <MenuItem value="MOCK_DMX">Fake DMX Output</MenuItem>
+            <MenuItem value="ART_NET">Art Net DMX Output</MenuItem>
           </Select>
         </FormControl>
 
         {outputType === 'LINUX_DMX' && (
-          <FormControl sx={{ flex: '0.5', marginLeft: '16px' }}>
-            <InputLabel id={`output-${index}-linux-dmx-device`}>
-              Device Number
-            </InputLabel>
-            <Select
-              labelId={`output-${index}-linux-dmx-device`}
-              inputProps={register(`outputs.${index}.device`)}
-              defaultValue={linuxDmxSelectedDevice || ''}
-            >
-              {isLinuxDmxDeviceOffline && (
-                <MenuItem value={linuxDmxSelectedDevice}>
-                  {linuxDmxSelectedDevice} (Offline)
-                </MenuItem>
-              )}
-              {connectedLinuxDmxOutputs.map((deviceNumber) => (
-                <MenuItem
-                  key={`linux-dmx-${deviceNumber}`}
-                  value={deviceNumber}
-                >
-                  {deviceNumber}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <LinuxDMX
+            index={index}
+            connectedLinuxDmxOutputs={connectedOutputs.linuxDMX}
+          />
+        )}
+
+        {outputType === 'ART_NET' && (
+          <ArtNetOutput
+            index={index}
+            artNetNetworkInterfaces={connectedOutputs.artNetNetworkInterfaces}
+          />
         )}
       </Box>
     </Stack>
