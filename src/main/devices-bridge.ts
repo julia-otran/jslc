@@ -307,6 +307,7 @@ const internalOpenArtNetOutput = (
   address: ArtNetOutputAddress
 ) => {
   if (openArtNetOutputs[name]) {
+    openArtNetOutputs[name].stop();
     delete openArtNetOutputs[name];
   }
 
@@ -330,7 +331,10 @@ const updateArtNetOutputs = () => {
       (outputName) =>
         !Object.keys(logicalDevices.outputs.artNet).includes(outputName)
     )
-    .forEach((unusedOutput) => delete openArtNetOutputs[unusedOutput]);
+    .forEach((unusedOutput) => {
+      openArtNetOutputs[unusedOutput].stop();
+      delete openArtNetOutputs[unusedOutput];
+    });
 };
 
 const writeToArtNetDMXOutputDevice = (
@@ -351,7 +355,8 @@ const writeToArtNetDMXOutputDevice = (
       index += 1;
     });
 
-    resolve();
+    sender.transmit();
+    setTimeout(resolve, 1);
   });
 };
 
@@ -507,14 +512,6 @@ export const writeToDmxOutputDevice = async (
     return;
   }
 
-  const mockDmxDevice = logicalDevices.outputs.mockDMX.filter(
-    (id) => id === deviceId
-  )[0];
-
-  if (mockDmxDevice !== undefined) {
-    await writeToMockOutput();
-  }
-
   const artNetOutputDevice = logicalDevices.outputs.artNet[deviceId];
 
   if (artNetOutputDevice !== undefined) {
@@ -524,6 +521,14 @@ export const writeToDmxOutputDevice = async (
       updateLogicalDevicesStatus();
       throw error;
     }
+  }
+
+  const mockDmxDevice = logicalDevices.outputs.mockDMX.filter(
+    (id) => id === deviceId
+  )[0];
+
+  if (mockDmxDevice !== undefined) {
+    await writeToMockOutput();
   }
 };
 

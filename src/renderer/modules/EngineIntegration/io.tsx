@@ -1,12 +1,12 @@
-import { mapObjIndexed, reduce } from 'ramda';
-import { useCallback, useEffect, useState } from 'react';
-
-import { v4 as uuidV4 } from 'uuid';
 import type {
   ArtNetInputAddress,
   ArtNetOutputAddress,
   IOState as IOStateIn,
 } from '../../../main/devices-bridge';
+import { mapObjIndexed, reduce } from 'ramda';
+import { useCallback, useEffect, useState } from 'react';
+
+import { v4 as uuidV4 } from 'uuid';
 
 export interface IOStateInfoInputArtNet extends ArtNetInputAddress {
   type: 'ART_NET';
@@ -129,7 +129,7 @@ const fromUiToEngine = (ioState: IOStateInfo): IOStateIn['info'] => ({
         ip: value.ip,
         net: value.net,
         subnet: value.subnet,
-        universe: value.subnet,
+        universe: value.universe,
         port: value.port,
         resendIntervalMs: value.resendIntervalMs,
       },
